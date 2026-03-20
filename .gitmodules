@@ -1,0 +1,3 @@
+[submodule "vendor/nemoclaw"]
+	path = vendor/nemoclaw
+	url = https://github.com/codysumpter-cloud/nemoclaw
