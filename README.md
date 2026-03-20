@@ -12,20 +12,31 @@ A portable setup for BMO / OpenClaw / worker environment.
 
 ```
 bmo-stack/
-├── compose.yaml          # Docker Compose file (for auxiliary services)
+├── compose.yaml          # Docker Compose file (for OPTIONAL auxiliary services)
 ├── .env.example          # Example environment variables
-├── Makefile              # Simple commands: make up, down, status, logs, doctor
+├── Makefile              # Simple commands: make up, down, status, logs, doctor, sync-context*
 ├── README.md             # This file
 ├── scripts/
 │   ├── bootstrap-mac.sh  # macOS bootstrap
 │   ├── bootstrap-wsl.sh  # WSL2 bootstrap
-│   └── bootstrap-linux.sh # Linux VPS / private cloud host bootstrap
-└── context/
-    ├── BOOTSTRAP.md
-    ├── SESSION_STATE.md
-    ├── SYSTEMMAP.md
-    ├── RUNBOOK.md
-    └── BACKLOG.md
+│   ├── bootstrap-linux.sh # Linux VPS / private cloud host bootstrap
+│   ├── common.sh         # Shared functions for bootstrap scripts
+│   └── sync-context.sh   # Sync context between host and repo
+├── config/
+│   └── omni-core.env.example # Example config for local-first operation
+├── context/
+│   ├── BOOTSTRAP.md
+│   ├── SESSION_STATE.md
+│   ├── SYSTEMMAP.md
+│   ├── RUNBOOK.md
+│   └── BACKLOG.md
+├── deploy/
+│   ├── bmo-openclaw.service        # systemd service for OpenClaw gateway
+│   ├── bmo-storage-prune.service   # systemd service for storage pruning
+│   └── bmo-storage-prune.timer     # systemd timer for hourly pruning
+└── memory/
+    └── decisions/
+        └── README.md
 ```
 
 ## What Runs Where
@@ -80,19 +91,33 @@ After bootstrapping:
    openshell sandbox connect bmo-tron
    ```
 
+### Context Synchronization
+
+Keep your host `~/bmo-context` and the repo's `./context` in sync:
+
+- `make sync-context`          # Bidirectional sync (default)
+- `make sync-context-host-to-repo` # Host → Repo only
+- `make sync-context-repo-to-host` # Repo → Host only
+
+Or run the script directly: `./scripts/sync-context.sh [--host-to-repo|--repo-to-host]`
+
 ### Makefile Commands
 
 - `make up` - Start auxiliary services (detached)
 - `make down` - Stop and remove auxiliary services
 - `make status` - Show status of auxiliary services
 - `make logs` - Follow logs of auxiliary services
+- `make sync-context` - Bidirectional context sync
+- `make sync-context-host-to-repo` - Sync host context to repo
+- `make sync-context-repo-to-host` - Sync repo context to host
 - `make doctor` - Check system prerequisites and context
 
 ### Keeping Context Synced
 
 The `context/` directory in this repo is a copy of your `~/bmo-context`.
-- After making changes to the context files in `~/bmo-context`, copy them to `bmo-stack/context/` (or vice versa).
-- You can automate this with a script or use a symbolic link if preferred, but note that the sandbox worker should not be the sole source of truth.
+- After making changes to the context files in `~/bmo-context`, you can sync them to the repo with `make sync-context-host-to-repo`.
+- After making changes to the context files in the repo, you can sync them to the host with `make sync-context-repo-to-host`.
+- You can automate this with a cron job or use the provided scripts.
 
 ## Important Notes
 
@@ -103,7 +128,7 @@ The `context/` directory in this repo is a copy of your `~/bmo-context`.
 ## Top 5 Follow-up Improvements
 
 1. Add a service for a database (e.g., Postgres) to `compose.yaml` for persistent worker data.
-2. Create a script to automatically sync context between `~/bmo-context` and `./context`.
-3. Add a `make sync-context` command to facilitate context synchronization.
+2. Create a script to automatically sync context between `~/bmo-context` and `./context` (already done: `scripts/sync-context.sh`).
+3. Add a `make sync-context` command to facilitate context synchronization (already done).
 4. Improve the bootstrap scripts to optionally install OpenClaw and Docker if missing.
 5. Add health checks to the `compose.yaml` services and integrate with `make doctor`.
