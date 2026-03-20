@@ -8,6 +8,7 @@ A portable setup for BMO / OpenClaw / worker environment.
 - **Sandbox Worker**: Optional and disposable, managed via OpenShell/NemoClaw.
 - **Canonical Context**: Lives outside disposable sandboxes in `~/bmo-context` (mounted as `./context` in the repo).
 - **NemoClaw/OpenShell**: Provides the worker sandbox framework (included as a submodule).
+- **Council Runtime**: Prismo orchestrates, BMO is the front-facing agent, NEPTR verifies completion.
 - **Auxiliary Services**: Optional services (e.g., PostgreSQL) can be run via Docker Compose.
 
 ## Directory Structure
@@ -32,6 +33,7 @@ bmo-stack/
 │   ├── SYSTEMMAP.md
 │   ├── RUNBOOK.md
 │   └── BACKLOG.md
+├── context/council/      # Council agent definitions (Prismo, Finn, Jake, etc.)
 ├── deploy/
 │   ├── bmo-openclaw.service        # systemd service for OpenClaw gateway
 │   ├── bmo-storage-prune.service   # systemd service for storage pruning
@@ -49,12 +51,15 @@ bmo-stack/
   - OpenClaw gateway (handles Telegram)
   - OpenShell / NemoClaw (for managing sandboxes)
   - Your personal data and configuration (e.g., `~/.openclaw`)
+  - Prismo (chief orchestrator) and BMO (front-facing agent) run here
 
 - **Worker Sandbox (optional, disposable)**:
   - Created via `make worker-create` (or `openshell sandbox create --name bmo-tron`)
   - Used for isolated commands, repo inspection, and risky work
   - Should not hold important context; context is synced from `~/bmo-context`
   - Runs the NemoClaw agent framework (from the `vendor/nemoclaw` submodule)
+  - Specialist agents (Finn, Peppermint Butler, etc.) execute here under Prismo's direction
+  - NEPTR performs verification before BMO claims completion
 
 - **Auxiliary Services (optional, run via Docker Compose)**:
   - PostgreSQL database (for worker sandbox persistence)
@@ -141,6 +146,7 @@ The `context/` directory in this repo is a copy of your `~/bmo-context`.
 - The `compose.yaml` defines a PostgreSQL service that is ready to use. It does not run the Telegram bot (that runs on the host) or the worker sandbox (managed by OpenShell).
 - The sandbox worker is managed by OpenShell on the host, not by Docker Compose. The compose file is for auxiliary services only.
 - The `vendor/nemoclaw` directory contains the NemoClaw/OpenShell submodule, which provides the worker sandbox framework. Do not modify this directory directly unless you intend to contribute back to the nemoclaw project.
+- Council agent definitions live in `context/council/` and are updated as the system evolves.
 
 ## What Is Still Manual
 
@@ -151,5 +157,6 @@ Despite the automation added via Makefile targets, the following steps remain ma
 3. **Start OpenClaw gateway**: Although we provide `make openclaw-start`, you must run it at least once (or configure it to start on boot) to handle Telegram.
 4. **Initial context**: The repo includes a copy of your `~/bmo-context` at the time of bootstrap. You must keep it in sync using the `make sync-context*` targets whenever you make changes in either location.
 5. **Worker sandbox lifecycle**: While we provide `make worker-create`, `worker-upload-config`, and `worker-connect`, you must run these commands (or the equivalent OpenShell commands) to set up and access the sandbox. The sandbox is not started automatically; you connect to it on demand.
+6. **Council agent definitions**: While the core agents (Prismo, BMO, NEPTR, Finn, etc.) are defined in `context/council/`, you may need to add or update specialist agents as your use case evolves.
 
 All other aspects (identity system, local‑first config, service templates, memory structure, shared bootstrap logic, nemoclaw submodule inclusion) are automated and ready to use. The repository is hardened and documented for immediate use across macOS, WSL2, and Linux hosts.

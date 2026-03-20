@@ -1,4 +1,4 @@
-.PHONY: up down status logs doctor sync-context sync-context-host-to-repo sync-context-repo-to-host worker-create worker-upload-config worker-connect worker-status openclaw-start openclaw-status recover-session
+.PHONY: up down status logs doctor sync-context sync-context-host-to-repo sync-context-repo-to-host worker-create worker-upload-config worker-connect worker-status openclaw-start openclaw-status recover-session worker-ready health-check doctor-plus
 
 # Docker Compose file
 COMPOSE_FILE=compose.yaml
@@ -57,6 +57,12 @@ doctor:
 	fi
 	@echo "All checks passed."
 
+# Enhanced doctor target with more comprehensive checks
+doctor-plus: doctor
+	@echo "Running extended health checks..."
+	@./scripts/bot-health.sh || echo "Some health checks failed (see above)"
+	@echo "Extended health checks completed."
+
 # Worker sandbox management
 worker-create:
 	@if openshell sandbox list | grep -q bmo-tron; then \
@@ -79,13 +85,15 @@ worker-connect:
 worker-status:
 	openshell sandbox list | grep bmo-tron || echo "Sandbox bmo-tron not found."
 
-# OpenClaw gateway management (host)
-openclaw-start:
-	openclaw gateway start
-
-openclaw-status:
-	openclaw gateway status
+# New target: worker-ready creates the sandbox and uploads config in one go
+worker-ready: worker-create worker-upload-config
+	@echo "Worker sandbox bmo-tron is ready for use."
 
 # Session recovery
 recover-session:
 	@./scripts/recover-session.sh
+
+# Health check target (from PrismBot integration)
+health-check:
+	@echo "Running PrismBot-style health check..."
+	@./scripts/bot-health.sh
