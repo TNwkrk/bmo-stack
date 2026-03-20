@@ -35,12 +35,9 @@ Recovery rules:
 - If Telegram breaks, keep it on host.
 - If nemoclaw list and openshell sandbox list disagree, trust openshell.
 - If important sandbox files are missing, recover from ~/bmo-context.
-
-## Worker Responsibility Split
-
-BMO is focused on conversation, context, and final replies.  
-Prismo routes and orchestrates.  
-Specialists do narrow jobs.  
-NEPTR verifies before claiming done.
-
-See `context/WORKER_NAMING_REGISTRY.md` for the detailed responsibility map.
+- At every session start, follow the restart recovery protocol:
+  1. Read host context: BOOTSTRAP.md, SESSION_STATE.md, SYSTEMMAP.md, RUNBOOK.md, BACKLOG.md
+  2. Read local session files: SOUL.md, USER.md, memory/YYYY-MM-DD.md, MEMORY.md (if main session)
+  3. Check TASK_STATE.md and WORK_IN_PROGRESS.md for interrupted work
+  4. Inspect git status of current repo before asking to restate anything
+  5. Resume interrupted work when safe
