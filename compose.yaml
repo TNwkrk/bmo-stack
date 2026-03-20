@@ -6,19 +6,21 @@ version: '3.8'
 #   - Worker sandbox (bmo-tron) is managed by OpenShell/NemoClaw on host
 #   - Context lives in ~/bmo-context (outside containers)
 #
-# If you want to run auxiliary services (e.g., a database for the worker),
-# uncomment and configure the services below. Then use `make up`/`make down`.
-#
-# Example: Redis cache (useful for worker sandbox)
+# If you want to run auxiliary services (e.g., a PostgreSQL database for the worker),
+# the services are already configured below. Just run `make up` to start them.
+# Adjust environment variables in .env as needed.
+
 services:
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: bmo_redis
-  #   restart: unless-stopped
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - redisdata:/data
+  postgres:
+    image: postgres:15-alpine
+    container_name: bmo_postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
 volumes:
-  redisdata:
+  pgdata:

@@ -8,12 +8,13 @@ A portable setup for BMO / OpenClaw / worker environment.
 - **Sandbox Worker**: Optional and disposable, managed via OpenShell/NemoClaw.
 - **Canonical Context**: Lives outside disposable sandboxes in `~/bmo-context` (mounted as `./context` in the repo).
 - **NemoClaw/OpenShell**: Provides the worker sandbox framework (included as a submodule).
+- **Auxiliary Services**: Optional services (e.g., PostgreSQL) can be run via Docker Compose.
 
 ## Directory Structure
 
 ```
 bmo-stack/
-├── compose.yaml          # Docker Compose file (for OPTIONAL auxiliary services)
+├── compose.yaml          # Docker Compose file (defines auxiliary services: PostgreSQL)
 ├── .env.example          # Example environment variables
 ├── Makefile              # Simple commands: make up, down, status, logs, doctor, sync-context*, worker-*, openclaw-*
 ├── README.md             # This file
@@ -55,6 +56,10 @@ bmo-stack/
   - Should not hold important context; context is synced from `~/bmo-context`
   - Runs the NemoClaw agent framework (from the `vendor/nemoclaw` submodule)
 
+- **Auxiliary Services (optional, run via Docker Compose)**:
+  - PostgreSQL database (for worker sandbox persistence)
+  - Started with `make up`, stopped with `make down`
+
 ## Getting Started
 
 ### Prerequisites
@@ -80,9 +85,9 @@ The script will:
 
 After bootstrapping:
 
-1. Edit `.env` to add your NVIDIA API key (and any other required keys).
+1. Edit `.env` to add your NVIDIA API key (and any other required keys, e.g., PostgreSQL password).
 2. Ensure OpenClaw is running on your host machine (or use `make openclaw-start`).
-3. Use `make up` to start any auxiliary services (currently just a placeholder container).
+3. Use `make up` to start auxiliary services (PostgreSQL).
 4. Manage the worker sandbox via make targets:
    ```bash
    # Create a worker sandbox (if not already created)
@@ -133,8 +138,8 @@ The `context/` directory in this repo is a copy of your `~/bmo-context`.
 ## Important Notes
 
 - Secrets (like API keys) should be placed in `.env` (not committed) or in your host's OpenClaw config.
-- The `compose.yaml` currently defines an optional Redis service (commented out). It does not run the Telegram bot (that runs on the host) or the worker sandbox (managed by OpenShell).
-- The sandbox worker is managed by OpenShell on the host, not by Docker Compose. The compose file is for any auxiliary services you might want to add (e.g., a database, Redis cache).
+- The `compose.yaml` defines a PostgreSQL service that is ready to use. It does not run the Telegram bot (that runs on the host) or the worker sandbox (managed by OpenShell).
+- The sandbox worker is managed by OpenShell on the host, not by Docker Compose. The compose file is for auxiliary services only.
 - The `vendor/nemoclaw` directory contains the NemoClaw/OpenShell submodule, which provides the worker sandbox framework. Do not modify this directory directly unless you intend to contribute back to the nemoclaw project.
 
 ## What Is Still Manual
@@ -142,13 +147,9 @@ The `context/` directory in this repo is a copy of your `~/bmo-context`.
 Despite the automation added via Makefile targets, the following steps remain manual (requiring user action or external setup):
 
 1. **Install prerequisites**: You must install Docker Engine + Compose v2 and OpenClaw on your host machine before running the bootstrap scripts.
-2. **Edit `.env`**: Set `NVIDIA_API_KEY` (required for the AI model). No default is provided for security reasons.
+2. **Edit `.env`**: Set `NVIDIA_API_KEY` (required for the AI model) and optionally adjust PostgreSQL credentials (POSTGRES_PASSWORD, etc.). No default is provided for security reasons.
 3. **Start OpenClaw gateway**: Although we provide `make openclaw-start`, you must run it at least once (or configure it to start on boot) to handle Telegram.
-4. **Decide on auxiliary services**: If you want to run auxiliary services (e.g., Redis, Postgres), you must:
-   - Uncomment and configure the desired service in `compose.yaml`.
-   - Add any required environment variables to `.env` (if needed for that service).
-   - Run `make up` to start the services.
-5. **Initial context**: The repo includes a copy of your `~/bmo-context` at the time of bootstrap. You must keep it in sync using the `make sync-context*` targets whenever you make changes in either location.
-6. **Worker sandbox lifecycle**: While we provide `make worker-create`, `worker-upload-config`, and `worker-connect`, you must run these commands (or the equivalent OpenShell commands) to set up and access the sandbox. The sandbox is not started automatically; you connect to it on demand.
+4. **Initial context**: The repo includes a copy of your `~/bmo-context` at the time of bootstrap. You must keep it in sync using the `make sync-context*` targets whenever you make changes in either location.
+5. **Worker sandbox lifecycle**: While we provide `make worker-create`, `worker-upload-config`, and `worker-connect`, you must run these commands (or the equivalent OpenShell commands) to set up and access the sandbox. The sandbox is not started automatically; you connect to it on demand.
 
-All other aspects (identity system, local‑first config, service templates, memory structure, shared bootstrap logic, nemoclaw submodule inclusion) are automated and ready to use. The repository is hardened and documented for immediate use across macOS, WSL2, and Linux hosts.  
+All other aspects (identity system, local‑first config, service templates, memory structure, shared bootstrap logic, nemoclaw submodule inclusion) are automated and ready to use. The repository is hardened and documented for immediate use across macOS, WSL2, and Linux hosts.
