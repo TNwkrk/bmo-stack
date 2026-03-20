@@ -1,4 +1,4 @@
-.PHONY: up down status logs doctor sync-context sync-context-host-to-repo sync-context-repo-to-host worker-create worker-upload-config worker-connect worker-status openclaw-start openclaw-status
+.PHONY: up down status logs doctor sync-context sync-context-host-to-repo sync-context-repo-to-host worker-create worker-upload-config worker-connect worker-status openclaw-start openclaw-status recover-session
 
 # Docker Compose file
 COMPOSE_FILE=compose.yaml
@@ -85,3 +85,7 @@ openclaw-start:
 
 openclaw-status:
 	openclaw gateway status
+
+# Session recovery
+recover-session:
+	@./scripts/recover-session.sh

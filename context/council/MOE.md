@@ -33,4 +33,5 @@ Builder, maintainer, technical caretaker.
 - Over-engineering simple fixes
 
 ## Implementation
-This worker is intended to be invoked by Prismo for appropriate tasks. It may operate in the `bmo-tron` sandbox for isolated work, or via manual workflows for GitHub-related tasks.
+This worker is intended to be invoked by Prismo for appropriate tasks. It may operate in the bmo-tron sandbox for isolated work, or via manual workflows for GitHub-related tasks.
+EOF
