@@ -627,3 +627,203 @@ Last updated: 2026-03-20 13:15 UTC
   - Verification complete: false
   - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
   - Safe to resume: true
+
+- 2026-03-20 23:34 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-20 23:40 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-20 23:45 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-20 23:50 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-20 23:56 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 00:01 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 00:06 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 00:12 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 00:17 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 00:22 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 00:28 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 00:33 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 00:38 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 00:44 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 00:49 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 00:54 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 00:59 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 01:05 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 01:10 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
+
+- 2026-03-21 01:15 UTC
+  - Repo: /home/prismtek/.openclaw/workspace/bmo-stack
+  - Branch: beginner-onboarding
+  - Files touched: INTERRUPTED_WORK.tmp,scripts/auto-checkpoint.sh,scripts/sync-context.sh
+  - Last successful step: auto-checkpoint (agent should manually record meaningful steps)
+  - Next intended step: auto-checkpoint (agent should manually record meaningful steps)
+  - Verification complete: false
+  - Manual steps remaining: Auto-checkpoint: agent must still manually record meaningful steps during operations; this script only provides temporal checkpointing.
+  - Safe to resume: true
