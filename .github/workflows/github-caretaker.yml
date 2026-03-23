@@ -33,7 +33,7 @@ jobs:
           scripts/github-maintenance-report.sh
 
       - name: Upload maintenance report artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cosmic-owl-maintenance-report
           path: maintenance-report.md
