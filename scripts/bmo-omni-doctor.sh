@@ -25,8 +25,8 @@ fail() {
 }
 
 if [ -f "$ENV_FILE" ]; then
-  # shellcheck disable=SC1090
   set -a
+  # shellcheck source=/dev/null
   . "$ENV_FILE"
   set +a
 fi

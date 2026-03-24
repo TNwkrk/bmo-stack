@@ -8,8 +8,8 @@ ENV_FILE="${BMO_OMNI_ENV_FILE:-$HOME/.config/bmo-omni.env}"
 DEFAULT_OMNI_BASE_URL="http://127.0.0.1:8799/api/omni"
 
 if [ -f "$ENV_FILE" ]; then
-  # shellcheck disable=SC1090
   set -a
+  # shellcheck source=/dev/null
   . "$ENV_FILE"
   set +a
 fi
@@ -29,7 +29,7 @@ TOKEN_VALUE="${BMO_OMNI_TOKEN:-${PRISMBOT_API_TOKEN:-}}"
 }
 
 if [ -f "$OMNI_DIR/venv/bin/activate" ]; then
-  # shellcheck disable=SC1091
+  # shellcheck source=/dev/null
   . "$OMNI_DIR/venv/bin/activate"
 fi
 
