@@ -43,7 +43,10 @@ trigger_scores() {
 
 memory_bonus() {
   local skill="$1"
-  [ -f "$MEMORY" ] || { echo 0; return; }
+  [ -f "$MEMORY" ] || {
+    echo 0
+    return
+  }
 
   require_cmd jq
   jq -r --arg skill "$skill" '
@@ -76,11 +79,25 @@ best_match() {
 main() {
   while [ $# -gt 0 ]; do
     case "$1" in
-      --apply) AUTO_APPLY=true ;;
-      --retries) shift; MAX_RETRIES="${1:-2}" ;;
-      --text) shift; INPUT="${1:-}" ;;
-      -h | --help) echo "Usage: skill-recover-learned"; exit 0 ;;
-      *) echo "Unknown arg: $1"; exit 1 ;;
+      --apply)
+        AUTO_APPLY=true
+        ;;
+      --retries)
+        shift
+        MAX_RETRIES="${1:-2}"
+        ;;
+      --text)
+        shift
+        INPUT="${1:-}"
+        ;;
+      -h | --help)
+        echo "Usage: skill-recover-learned"
+        exit 0
+        ;;
+      *)
+        echo "Unknown arg: $1"
+        exit 1
+        ;;
     esac
     shift
   done

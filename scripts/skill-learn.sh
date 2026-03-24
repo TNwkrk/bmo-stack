@@ -13,7 +13,7 @@ require_cmd() {
 
 ensure_memory() {
   mkdir -p "$(dirname "$MEMORY")"
-  [ -f "$MEMORY" ] || printf '{\n  "history": []\n}\n' > "$MEMORY"
+  [ -f "$MEMORY" ] || printf '{\n  "history": []\n}\n' >"$MEMORY"
 }
 
 log_result() {
