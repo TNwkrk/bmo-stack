@@ -1,0 +1,35 @@
+name: autonomous-skill-evolution
+
+on:
+  schedule:
+    - cron: "0 * * * *" # every hour
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  evolve:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run autonomous evolution
+        run: |
+          python3 scripts/skill_autonomy.py --generate-skill --stats
+
+      - name: Create PR if changes
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: autonomous skill evolution"
+          branch: auto/skill-evolution
+          title: "Auto: skill evolution update"
+          body: "Automated evolution from memory"
