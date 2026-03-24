@@ -85,5 +85,21 @@ jobs:
           assert not missing, f"missing fields: {sorted(missing)}"
           PY
 
+      - name: Run selector
+        run: python3 scripts/skill_select.py --text "ci failed because shellcheck is red" --output workflows/selector-smoke.json
+
+      - name: Assert selector output
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          selection = json.loads(Path("workflows/selector-smoke.json").read_text(encoding="utf-8"))
+          assert selection["selected"] is not None
+          assert selection["selected"]["skill"] == "ci-failure-diagnosis"
+          assert selection["selected"]["action"] == "show"
+          assert selection["candidates"]
+          PY
+
       - name: Replan loop
         run: bash scripts/skill_replan.sh

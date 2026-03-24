@@ -3,8 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REGISTRY="$ROOT_DIR/skills/index.json"
-MEMORY="$ROOT_DIR/skills/memory.json"
 SKILL_RUNNER="$ROOT_DIR/scripts/skill.sh"
+SELECTOR="$ROOT_DIR/scripts/skill_select.py"
 MAX_RETRIES=2
 AUTO_APPLY=false
 INPUT=""
@@ -24,56 +24,24 @@ read_input() {
   cat
 }
 
-trigger_scores() {
+select_match() {
   local text="$1"
-  require_cmd jq
-  jq -r --arg txt "$text" '
-    .skills
-    | to_entries
-    | map({
-        skill: .key,
-        action: .value.default_action,
-        score: ([.value.triggers[] | ascii_downcase | select($txt | contains(.))] | length)
-      })
-    | map(select(.score > 0))
-    | .[]
-    | [.skill, .action, (.score|tostring)] | @tsv
-  ' "$REGISTRY"
-}
+  local tmp
 
-memory_bonus() {
-  local skill="$1"
-  [ -f "$MEMORY" ] || {
-    echo 0
-    return
+  require_cmd jq
+  [ -f "$REGISTRY" ] || {
+    echo "Missing skill registry: $REGISTRY" >&2
+    exit 1
+  }
+  [ -f "$SELECTOR" ] || {
+    echo "Missing selector: $SELECTOR" >&2
+    exit 1
   }
 
-  require_cmd jq
-  jq -r --arg skill "$skill" '
-    [.history[] | select(.skill == $skill)] as $h
-    | if ($h | length) == 0 then 0
-      else (($h | map(select(.success == true)) | length) - ($h | map(select(.success == false)) | length))
-      end
-  ' "$MEMORY"
-}
-
-best_match() {
-  local text="$1"
-  local best=""
-  local best_score=-999
-  local bonus total
-
-  while IFS=$'\t' read -r skill action score; do
-    bonus="$(memory_bonus "$skill")"
-    total=$((score + bonus))
-
-    if [ "$total" -gt "$best_score" ]; then
-      best_score="$total"
-      best="$skill\t$action\t$score\t$bonus\t$total"
-    fi
-  done < <(trigger_scores "$text")
-
-  printf '%b\n' "$best"
+  tmp="$(mktemp)"
+  python3 "$SELECTOR" --text "$text" --output "$tmp" >/dev/null
+  jq -r '.selected | if . == null then "" else "\(.skill)\t\(.action)" end' "$tmp"
+  rm -f "$tmp"
 }
 
 main() {
@@ -106,7 +74,7 @@ main() {
   lower="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]')"
 
   for ((attempt = 1; attempt <= MAX_RETRIES; attempt++)); do
-    match="$(best_match "$lower")"
+    match="$(select_match "$lower")"
 
     if [ -z "$match" ]; then
       echo "No learned recovery match found." >&2
