@@ -13,15 +13,15 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 pass() {
-  echo -e "${GREEN}PASS${NC} $1"
+  printf '%b\n' "${GREEN}PASS${NC} $1"
 }
 
 warn() {
-  echo -e "${YELLOW}WARN${NC} $1"
+  printf '%b\n' "${YELLOW}WARN${NC} $1"
 }
 
 fail() {
-  echo -e "${RED}FAIL${NC} $1"
+  printf '%b\n' "${RED}FAIL${NC} $1"
 }
 
 if [ -f "$ENV_FILE" ]; then
@@ -35,6 +35,7 @@ OMNI_BASE_URL="${BMO_OMNI_BASE_URL:-${OMNI_LOCAL_BASE_URL:-$DEFAULT_OMNI_BASE_UR
 
 check_command() {
   local cmd="$1"
+
   if command -v "$cmd" >/dev/null 2>&1; then
     pass "$cmd found: $(command -v "$cmd")"
   else
@@ -45,6 +46,7 @@ check_command() {
 check_file() {
   local path="$1"
   local label="$2"
+
   if [ -e "$path" ]; then
     pass "$label present: $path"
   else
@@ -54,6 +56,7 @@ check_file() {
 
 check_url() {
   local url="$1"
+
   if ! command -v curl >/dev/null 2>&1; then
     warn "curl not found; skipping Omni health check"
     return
@@ -66,12 +69,12 @@ check_url() {
   fi
 }
 
-echo "omni-bmo bridge doctor"
-echo "repo root: $ROOT_DIR"
-echo "omni dir:  $OMNI_DIR"
-echo "env file:  $ENV_FILE"
-echo "base url:  $OMNI_BASE_URL"
-echo
+printf '%s\n' "omni-bmo bridge doctor"
+printf '%s\n' "repo root: $ROOT_DIR"
+printf '%s\n' "omni dir:  $OMNI_DIR"
+printf '%s\n' "env file:  $ENV_FILE"
+printf '%s\n' "base url:  $OMNI_BASE_URL"
+printf '\n'
 
 check_command git
 check_command python3
@@ -93,8 +96,7 @@ fi
 
 check_url "$OMNI_BASE_URL/health"
 
-echo
-echo "Suggested next steps:"
-echo "  1. bash scripts/sync-omni-bmo.sh"
-echo "  2. cp config/omni-bmo.env.example ~/.config/bmo-omni.env"
-echo "  3. bash scripts/bmo-omni-launch.sh"
+printf '\nSuggested next steps:\n'
+printf '%s\n' "  1. bash scripts/sync-omni-bmo.sh"
+printf '%s\n' "  2. cp config/omni-bmo.env.example ~/.config/bmo-omni.env"
+printf '%s\n' "  3. bash scripts/bmo-omni-launch.sh"
