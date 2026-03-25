@@ -50,6 +50,10 @@ At every session start, read these files before answering any questions.
 Then:
 - **Check git status** of current repo before asking the user to restate anything
 - **Resume interrupted work** when safe
+- If the active checkout is a workspace mirror under `~/.openclaw/workspace`, refresh it before claiming repo files are missing:
+  - `python3 scripts/bmo-workspace-sync.py --workspace-dir ~/.openclaw/workspace/bmo-stack --host-context ~/bmo-context`
+- For runtime routing tasks, inspect `python3 scripts/bmo-model-router.py --task "..."`
+- For website migration and caretaker tasks, inspect `python3 scripts/bmo-site-caretaker.py`
 
 Each checkpoint (recorded in TASK_STATE.md and WORK_IN_PROGRESS.md) must be made before long-running tasks, after major steps, before pushes, and after failed/interrupted operations, and must include:
 - Timestamp

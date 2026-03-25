@@ -31,4 +31,8 @@ Restart recovery:
 - Then read local session files (SOUL.md, USER.md, memory/YYYY-MM-DD.md, MEMORY.md if main session)
 - Check TASK_STATE.md and WORK_IN_PROGRESS.md for interrupted work
 - Inspect git status of current repo before asking to restate anything
+- If operating from ~/.openclaw/workspace or another mirror checkout, refresh the canonical workspace before claiming files are missing:
+  - python3 ~/bmo-stack/scripts/bmo-workspace-sync.py --workspace-dir ~/.openclaw/workspace/bmo-stack --host-context ~/bmo-context
+- For runtime routing work, inspect scripts/bmo-model-router.py
+- For website migration and caretaker work, inspect scripts/bmo-site-caretaker.py
 - Resume interrupted work when safe

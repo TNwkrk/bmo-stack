@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BMO_STACK_DIR="${BMO_STACK_DIR:-$ROOT_DIR}"
 PRISMBOT_DIR="${PRISMBOT_DIR:-$ROOT_DIR/PrismBot}"
 OMNI_BMO_DIR="${OMNI_BMO_DIR:-$ROOT_DIR/omni-bmo}"
+BMO_OPENCLAW_WORKSPACE_DIR="${BMO_OPENCLAW_WORKSPACE_DIR:-$HOME/.openclaw/workspace/bmo-stack}"
 
 log() {
   printf '[update-all] %s\n' "$*"
@@ -39,8 +40,17 @@ command -v git >/dev/null 2>&1 || {
 log "bmo-stack: $BMO_STACK_DIR"
 log "PrismBot archive: $PRISMBOT_DIR"
 log "omni-bmo: $OMNI_BMO_DIR"
+log "openclaw workspace: $BMO_OPENCLAW_WORKSPACE_DIR"
 
 sync_repo "bmo-stack" "$BMO_STACK_DIR"
+
+if [ -f "$ROOT_DIR/scripts/bmo-workspace-sync.py" ]; then
+  log "workspace sync: refreshing OpenClaw workspace mirror"
+  python3 "$ROOT_DIR/scripts/bmo-workspace-sync.py" --workspace-dir "$BMO_OPENCLAW_WORKSPACE_DIR" || log "workspace sync failed"
+else
+  log "workspace sync helper missing, skipping"
+fi
+
 sync_repo "PrismBot archive" "$PRISMBOT_DIR"
 
 if [ -d "$OMNI_BMO_DIR/.git" ]; then
