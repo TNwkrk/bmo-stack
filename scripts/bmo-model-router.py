@@ -29,28 +29,36 @@ def parse_env_value(raw_value: str) -> str:
 def load_env_file(path: Path) -> None:
     if not path.exists():
         return
+    preserved_keys = set(os.environ)
     for line in path.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("#") or "=" not in stripped:
             continue
         key, value = stripped.split("=", 1)
         key = key.removeprefix("export ").strip()
-        os.environ.setdefault(key, parse_env_value(value))
+        if key in preserved_keys:
+            continue
+        os.environ[key] = parse_env_value(value)
 
 
 def resolve_runtime(route: str) -> dict[str, object]:
     if route == "cloud":
         endpoint = os.environ.get("BMO_CLOUD_TEXT_ENDPOINT", "").strip()
+        api_style = os.environ.get("BMO_CLOUD_API_STYLE", "openai").strip().lower() or "openai"
         return {
             "route": "cloud",
             "model": os.environ.get("BMO_CLOUD_TEXT_MODEL", "nemotron-3-super"),
             "endpoint": endpoint,
+            "api_style": api_style,
+            "auth_configured": bool(os.environ.get("BMO_CLOUD_API_KEY", "").strip()),
             "available": bool(endpoint),
         }
     return {
         "route": "local",
         "model": os.environ.get("BMO_LOCAL_TEXT_MODEL", os.environ.get("BMO_TEXT_MODEL", "nemotron-mini:4b-instruct-q2_K")),
         "endpoint": os.environ.get("BMO_OLLAMA_ENDPOINT", DEFAULT_ENDPOINT),
+        "api_style": "ollama",
+        "auth_configured": False,
         "available": True,
     }
 
