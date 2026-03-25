@@ -41,16 +41,21 @@ def load_env_file(path: Path) -> None:
 def resolve_runtime(route: str) -> dict[str, object]:
     if route == "cloud":
         endpoint = os.environ.get("BMO_CLOUD_TEXT_ENDPOINT", "").strip()
+        api_style = os.environ.get("BMO_CLOUD_API_STYLE", "openai").strip().lower() or "openai"
         return {
             "route": "cloud",
             "model": os.environ.get("BMO_CLOUD_TEXT_MODEL", "nemotron-3-super"),
             "endpoint": endpoint,
+            "api_style": api_style,
+            "auth_configured": bool(os.environ.get("BMO_CLOUD_API_KEY", "").strip()),
             "available": bool(endpoint),
         }
     return {
         "route": "local",
         "model": os.environ.get("BMO_LOCAL_TEXT_MODEL", os.environ.get("BMO_TEXT_MODEL", "nemotron-mini:4b-instruct-q2_K")),
         "endpoint": os.environ.get("BMO_OLLAMA_ENDPOINT", DEFAULT_ENDPOINT),
+        "api_style": "ollama",
+        "auth_configured": False,
         "available": True,
     }
 

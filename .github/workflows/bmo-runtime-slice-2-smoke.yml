@@ -21,6 +21,13 @@ jobs:
       - name: Apply slice-2 profile
         run: python3 scripts/apply-bmo-runtime-profile-v2.py dev --env-file workflows/test-bmo-runtime-v2.env --output workflows/bmo-runtime-profile-v2.json
 
+      - name: Configure fake cloud endpoint for contract checks
+        run: |
+          cat >> workflows/test-bmo-runtime-v2.env <<'EOF'
+          BMO_CLOUD_TEXT_ENDPOINT=https://example.invalid/v1/chat/completions
+          BMO_CLOUD_API_STYLE=openai
+          EOF
+
       - name: Assert profile schema
         run: |
           python3 - <<'PY'
@@ -34,6 +41,7 @@ jobs:
           assert profile["values"]["BMO_CLOUD_TEXT_MODEL"]
           assert profile["values"]["BMO_STT_BACKEND"]
           assert "BMO_STT_COMMAND" in profile["values"]
+          assert "BMO_CLOUD_API_STYLE" in profile["values"]
           PY
 
       - name: Assert generated env is sourceable
@@ -54,8 +62,9 @@ jobs:
 
           route = json.loads(Path("workflows/bmo-runtime-route.json").read_text(encoding="utf-8"))
           assert route["task_class"] == "website"
-          assert route["route"] in {"local", "cloud"}
+          assert route["route"] == "cloud"
           assert route["selected_runtime"]["model"]
+          assert route["selected_runtime"]["api_style"] == "openai"
           PY
 
       - name: Capture STT fixture
@@ -76,8 +85,23 @@ jobs:
       - name: Render rich face
         run: python3 scripts/bmo-face-rich.py idle
 
+      - name: Dry-run cloud contract
+        run: BMO_RUNTIME_ENV_FILE=workflows/test-bmo-runtime-v2.env python3 scripts/bmo-cloud-generate.py --prompt "hello bmo" --dry-run --output workflows/bmo-cloud-generate.json
+
+      - name: Assert cloud contract schema
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          cloud = json.loads(Path("workflows/bmo-cloud-generate.json").read_text(encoding="utf-8"))
+          assert cloud["dry_run"] is True
+          assert cloud["api_style"] == "openai"
+          assert cloud["endpoint"]
+          PY
+
       - name: Dry-run launch flow
-        run: BMO_RUNTIME_ENV_FILE=workflows/test-bmo-runtime-v2.env python3 scripts/bmo-runtime-launch.py --dry-run --once "hello bmo" --output workflows/bmo-runtime-launch.json
+        run: BMO_RUNTIME_ENV_FILE=workflows/test-bmo-runtime-v2.env python3 scripts/bmo-runtime-launch.py --dry-run --force-route cloud --once "hello bmo" --output workflows/bmo-runtime-launch.json
 
       - name: Assert launch schema
         run: |
@@ -88,5 +112,6 @@ jobs:
           launch = json.loads(Path("workflows/bmo-runtime-launch.json").read_text(encoding="utf-8"))
           assert launch["dry_run"] is True
           assert launch["model"]
-          assert launch["face_script"]
+          assert launch["api_style"] == "openai"
+          assert launch["route"] == "cloud"
           PY

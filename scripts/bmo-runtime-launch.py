@@ -53,6 +53,23 @@ def resolve_face_script() -> Path:
     return basic
 
 
+def call_face(face_script: Path, state: str) -> None:
+    if not face_script.exists():
+        return
+    if face_script.suffix == ".py":
+        subprocess.run([sys.executable, str(face_script), state], check=False)
+    else:
+        subprocess.run(["bash", str(face_script), state], check=False)
+
+
+def capture_turn(backend: str, command: str) -> str:
+    cmd = [sys.executable, str(ROOT / "scripts" / "bmo-stt-listen.py"), "--backend", backend]
+    if backend == "command" and command:
+        cmd.extend(["--command", command])
+    completed = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    return completed.stdout.strip()
+
+
 def route_task(task: str, task_class: str | None, force_route: str | None) -> dict[str, object]:
     cmd = [sys.executable, str(ROOT / "scripts" / "bmo-model-router.py"), "--task", task]
     if task_class:
@@ -63,11 +80,29 @@ def route_task(task: str, task_class: str | None, force_route: str | None) -> di
     return json.loads(completed.stdout)
 
 
-def build_listen_command(backend: str, command: str) -> str:
-    cmd = [sys.executable, str(ROOT / "scripts" / "bmo-stt-listen.py"), "--backend", backend]
-    if backend == "command" and command:
-        cmd.extend(["--command", command])
-    return " ".join(shlex.quote(part) for part in cmd)
+def speak_reply(tts: str, text: str) -> None:
+    if not text:
+        return
+    subprocess.run([sys.executable, str(ROOT / "scripts" / "bmo_voice_loop.py"), "--once", text, "--tts", tts, "--model", os.environ.get("BMO_TEXT_MODEL", "nemotron-mini:4b-instruct-q2_K")], check=False)
+
+
+def run_cloud_turn(prompt: str, selected_runtime: dict[str, object], dry_run: bool) -> str:
+    cmd = [
+        sys.executable,
+        str(ROOT / "scripts" / "bmo-cloud-generate.py"),
+        "--prompt",
+        prompt,
+        "--model",
+        str(selected_runtime["model"]),
+        "--endpoint",
+        str(selected_runtime["endpoint"]),
+        "--api-style",
+        str(selected_runtime.get("api_style", "openai")),
+    ]
+    if dry_run:
+        cmd.append("--dry-run")
+    completed = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    return completed.stdout.strip()
 
 
 def main() -> None:
@@ -96,6 +131,7 @@ def main() -> None:
         "reason": routed["reason"],
         "model": selected_runtime["model"],
         "endpoint": selected_runtime["endpoint"],
+        "api_style": selected_runtime.get("api_style", "ollama"),
         "available": selected_runtime["available"],
         "backend": args.backend,
         "command": args.command,
@@ -117,18 +153,49 @@ def main() -> None:
     if not selected_runtime["available"]:
         raise SystemExit(f"Selected runtime route is not configured: {routed['route']}")
 
-    env = os.environ.copy()
-    env["BMO_TEXT_MODEL"] = str(selected_runtime["model"])
-    env["BMO_FACE_SCRIPT"] = str(face_script)
-    if selected_runtime["endpoint"]:
-        env["BMO_OLLAMA_ENDPOINT"] = str(selected_runtime["endpoint"])
+    if routed["route"] == "local":
+        env = os.environ.copy()
+        env["BMO_TEXT_MODEL"] = str(selected_runtime["model"])
+        env["BMO_FACE_SCRIPT"] = str(face_script)
+        if selected_runtime["endpoint"]:
+            env["BMO_OLLAMA_ENDPOINT"] = str(selected_runtime["endpoint"])
+        cmd = [sys.executable, str(ROOT / "scripts" / "bmo_voice_loop.py"), "--tts", args.tts]
+        if args.once is not None:
+            cmd.extend(["--once", args.once])
+        elif args.backend == "command" and args.command:
+            cmd.extend(["--listen-command", f"{sys.executable} {shlex.quote(str(ROOT / 'scripts' / 'bmo-stt-listen.py'))} --backend command --command {shlex.quote(args.command)}"])
+        subprocess.run(cmd, env=env, check=True)
+        return
 
-    cmd = [sys.executable, str(ROOT / "scripts" / "bmo_voice_loop.py"), "--tts", args.tts]
     if args.once is not None:
-        cmd.extend(["--once", args.once])
-    else:
-        cmd.extend(["--listen-command", build_listen_command(args.backend, args.command)])
-    subprocess.run(cmd, env=env, check=True)
+        user_text = args.once.strip()
+        if not user_text:
+            raise SystemExit("Empty input provided to --once")
+        call_face(face_script, "thinking")
+        reply = run_cloud_turn(user_text, selected_runtime, dry_run=False)
+        call_face(face_script, "speaking")
+        if reply:
+            print(reply)
+        speak_reply(args.tts, reply)
+        call_face(face_script, "idle")
+        return
+
+    call_face(face_script, "idle")
+    print("BMO cloud runtime ready. Type 'exit' to quit.")
+    while True:
+        call_face(face_script, "listening")
+        user_text = capture_turn(args.backend, args.command)
+        if not user_text:
+            continue
+        if user_text.lower() in {"exit", "quit"}:
+            break
+        call_face(face_script, "thinking")
+        reply = run_cloud_turn(user_text, selected_runtime, dry_run=False)
+        call_face(face_script, "speaking")
+        if reply:
+            print(f"bmo> {reply}")
+        speak_reply(args.tts, reply)
+        call_face(face_script, "idle")
 
 
 if __name__ == "__main__":

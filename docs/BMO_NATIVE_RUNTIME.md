@@ -15,6 +15,7 @@ The native runtime now includes:
 - local STT adapter with optional wake-word gate
 - richer terminal face renderer
 - runtime launch flow
+- cloud route execution contract
 
 ## Current components
 
@@ -89,6 +90,7 @@ Run the loop through the launcher:
 ```bash
 python3 scripts/bmo-runtime-launch.py --once "hello bmo"
 python3 scripts/bmo-runtime-launch.py --task "review the homepage migration"
+python3 scripts/bmo-runtime-launch.py --force-route cloud --once "summarize this repo state"
 ```
 
 The launcher composes:
@@ -98,6 +100,25 @@ The launcher composes:
 3. face renderer selection
 4. STT selection
 5. runtime execution
+
+### Cloud route execution
+
+Run:
+
+```bash
+python3 scripts/bmo-cloud-generate.py --prompt "hello bmo" --dry-run
+```
+
+Supported API styles:
+
+- `openai` for chat completions compatible endpoints
+- `ollama` for `/api/generate` compatible endpoints
+
+Relevant environment variables:
+
+- `BMO_CLOUD_TEXT_ENDPOINT`
+- `BMO_CLOUD_API_STYLE`
+- `BMO_CLOUD_API_KEY`
 
 ### Face / expression helpers
 
@@ -164,6 +185,8 @@ Use these names going forward:
 - `BMO_LOCAL_TEXT_MODEL`
 - `BMO_CLOUD_TEXT_MODEL`
 - `BMO_CLOUD_TEXT_ENDPOINT`
+- `BMO_CLOUD_API_STYLE`
+- `BMO_CLOUD_API_KEY`
 - `BMO_VISION_MODEL`
 - `BMO_STT_BACKEND`
 - `BMO_STT_COMMAND`

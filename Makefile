@@ -1,4 +1,4 @@
-.PHONY: up down status logs doctor sync-context sync-context-host-to-repo sync-context-repo-to-host worker-create worker-upload-config worker-connect worker-status openclaw-start openclaw-status recover-session worker-ready health-check doctor-plus checkpoint omni-sync omni-doctor omni-launch recover-bmo update-all runtime-doctor runtime-profile-dev runtime-profile-snappy runtime-profile-robust runtime-face-idle runtime-loop runtime-router runtime-profile2-dev runtime-profile2-snappy runtime-profile2-robust runtime-stt-once runtime-face-rich-idle runtime-launch runtime-launch-dry workspace-sync site-caretaker launchd-install
+.PHONY: up down status logs doctor sync-context sync-context-host-to-repo sync-context-repo-to-host worker-create worker-upload-config worker-connect worker-status openclaw-start openclaw-status recover-session worker-ready health-check doctor-plus checkpoint omni-sync omni-doctor omni-launch recover-bmo update-all runtime-doctor runtime-profile-dev runtime-profile-snappy runtime-profile-robust runtime-face-idle runtime-loop runtime-router runtime-profile2-dev runtime-profile2-snappy runtime-profile2-robust runtime-stt-once runtime-face-rich-idle runtime-launch runtime-launch-dry runtime-cloud-once runtime-cloud-dry workspace-sync site-caretaker launchd-install
 
 # Docker Compose file
 COMPOSE_FILE=compose.yaml
@@ -154,6 +154,12 @@ runtime-launch:
 
 runtime-launch-dry:
 	@python3 ./scripts/bmo-runtime-launch.py --dry-run $(if $(ARGS),$(ARGS))
+
+runtime-cloud-once:
+	@python3 ./scripts/bmo-runtime-launch.py --force-route cloud --once "$(if $(ARGS),$(ARGS),hello bmo)"
+
+runtime-cloud-dry:
+	@python3 ./scripts/bmo-runtime-launch.py --dry-run --force-route cloud --once "$(if $(ARGS),$(ARGS),hello bmo)"
 
 workspace-sync:
 	@python3 ./scripts/bmo-workspace-sync.py $(if $(ARGS),$(ARGS))
