@@ -5,6 +5,7 @@ import argparse
 import base64
 import json
 import os
+import shlex
 import sys
 import urllib.error
 import urllib.request
@@ -17,6 +18,19 @@ DEFAULT_MODEL = os.environ.get("BMO_VISION_MODEL", "moondream")
 DEFAULT_ENDPOINT = os.environ.get("BMO_OLLAMA_ENDPOINT", "http://127.0.0.1:11434/api/generate")
 
 
+def parse_env_value(raw_value: str) -> str:
+    stripped = raw_value.strip()
+    if not stripped:
+        return ""
+    try:
+        parts = shlex.split(stripped, comments=False, posix=True)
+    except ValueError:
+        return os.path.expandvars(stripped)
+    if not parts:
+        return ""
+    return os.path.expandvars(parts[0] if len(parts) == 1 else " ".join(parts))
+
+
 def load_env_file(path: Path) -> None:
     if not path.exists():
         return
@@ -25,7 +39,8 @@ def load_env_file(path: Path) -> None:
         if not stripped or stripped.startswith("#") or "=" not in stripped:
             continue
         key, value = stripped.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip())
+        key = key.removeprefix("export ").strip()
+        os.environ.setdefault(key, parse_env_value(value))
 
 
 def generate_caption(model: str, image_path: Path) -> dict:

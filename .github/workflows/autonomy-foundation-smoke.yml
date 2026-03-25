@@ -96,7 +96,7 @@ jobs:
 
           report = json.loads(Path("workflows/skills-diagnosis.json").read_text(encoding="utf-8"))
           assert isinstance(report["skill_search_order"], list)
-          assert len(report["skill_search_order"]) == 3
+          assert len(report["skill_search_order"] ) == 3
           assert "manual_install_targets" in report
           assert "preferred_default" in report["manual_install_targets"]
           assert "workspace_override" in report["manual_install_targets"]
@@ -117,6 +117,13 @@ jobs:
           assert profile["values"]["BMO_VISION_MODEL"]
           assert profile["values"]["BMO_TTS_MODE"]
           PY
+
+      - name: Assert generated runtime env is sourceable
+        run: |
+          set -a
+          . workflows/test-bmo-runtime.env
+          set +a
+          test "$BMO_SYSTEM_PROMPT_EXTRAS" = "Keep responses concise, practical, and BMO-like."
 
       - name: Render BMO idle face
         run: bash scripts/bmo-face.sh idle
