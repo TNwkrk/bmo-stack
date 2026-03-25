@@ -49,7 +49,7 @@ Use this matrix to verify that the React migration is actually complete.
 - notes:
 ```
 
-## Starter row
+## Priority route starter rows
 
 ### /
 - navigation parity: partial
@@ -59,3 +59,39 @@ Use this matrix to verify that the React migration is actually complete.
 - functional parity: pending
 - deploy parity: pending
 - notes: Homepage is the first parity lock because its sections seed the rest of the React migration.
+
+### /arcade-games/
+- navigation parity: pending
+- visual parity: pending
+- content parity: pending
+- CTA parity: pending
+- functional parity: pending
+- deploy parity: pending
+- notes: Seed this route immediately after homepage CTA and section patterns are locked.
+
+### /projects/
+- navigation parity: pending
+- visual parity: pending
+- content parity: pending
+- CTA parity: pending
+- functional parity: pending
+- deploy parity: pending
+- notes: Projects must preserve showcase intent, not just route presence.
+
+### /downloads/
+- navigation parity: pending
+- visual parity: pending
+- content parity: pending
+- CTA parity: pending
+- functional parity: pending
+- deploy parity: pending
+- notes: Downloads must preserve actual file/link behavior in the React version.
+
+### /build-log/
+- navigation parity: pending
+- visual parity: pending
+- content parity: pending
+- CTA parity: pending
+- functional parity: pending
+- deploy parity: pending
+- notes: Build Log should preserve chronology and update expectations, not just archive cards.
