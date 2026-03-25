@@ -1,31 +1,59 @@
-version: 1
-lastUpdated: 2026-03-11
+version: 2
+lastUpdated: 2026-03-25
 
 members:
-  - id: frontend-developer
-    role: Frontend Developer
+  - name: BMO
     status: active
-  - id: ai-engineer
-    role: AI Engineer
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Prismo
     status: active
-  - id: rapid-prototyper
-    role: Rapid Prototyper
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: NEPTR
     status: active
-  - id: reality-checker
-    role: Reality Checker (QA)
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Finn
     status: active
-  - id: social-media-strategist
-    role: Social Media Strategist
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Jake
     status: active
-  - id: professor-agent
-    role: Professor Agent (Council Advisor)
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Marceline
     status: active
-  - id: pixel-art-director
-    role: Pixel Art Director
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Princess Bubblegum
     status: active
-  - id: hd-visual-video-producer
-    role: HD Visual + Video Producer
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Peppermint Butler
     status: active
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Lady Rainicorn
+    status: active
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Simon
+    status: active
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Lemongrab
+    status: active
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Cosmic Owl
+    status: active
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Moe
+    status: active
+    zero_vote_streak: 0
+    selection_rate_30: null
 
 retiredMembers: []
 probationMembers: []
