@@ -1,0 +1,92 @@
+name: bmo-runtime-slice-2-smoke
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Apply slice-2 profile
+        run: python3 scripts/apply-bmo-runtime-profile-v2.py dev --env-file workflows/test-bmo-runtime-v2.env --output workflows/bmo-runtime-profile-v2.json
+
+      - name: Assert profile schema
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          profile = json.loads(Path("workflows/bmo-runtime-profile-v2.json").read_text(encoding="utf-8"))
+          assert profile["profile"] == "dev"
+          assert profile["values"]["BMO_TEXT_MODEL"]
+          assert profile["values"]["BMO_LOCAL_TEXT_MODEL"]
+          assert profile["values"]["BMO_CLOUD_TEXT_MODEL"]
+          assert profile["values"]["BMO_STT_BACKEND"]
+          assert "BMO_STT_COMMAND" in profile["values"]
+          PY
+
+      - name: Assert generated env is sourceable
+        run: |
+          set -a
+          . workflows/test-bmo-runtime-v2.env
+          set +a
+          test "$BMO_SYSTEM_PROMPT_EXTRAS" = "Keep responses concise, practical, and BMO-like."
+
+      - name: Route website task
+        run: BMO_RUNTIME_ENV_FILE=workflows/test-bmo-runtime-v2.env python3 scripts/bmo-model-router.py --task "review the prismtek-site migration route map" --output workflows/bmo-runtime-route.json
+
+      - name: Assert router schema
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          route = json.loads(Path("workflows/bmo-runtime-route.json").read_text(encoding="utf-8"))
+          assert route["task_class"] == "website"
+          assert route["route"] in {"local", "cloud"}
+          assert route["selected_runtime"]["model"]
+          PY
+
+      - name: Capture STT fixture
+        run: BMO_RUNTIME_ENV_FILE=workflows/test-bmo-runtime-v2.env python3 scripts/bmo-stt-listen.py --once "hello bmo" --output workflows/bmo-stt-turn.json
+
+      - name: Assert STT schema
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          turn = json.loads(Path("workflows/bmo-stt-turn.json").read_text(encoding="utf-8"))
+          assert turn["backend"] == "typed"
+          assert turn["text"] == "hello bmo"
+          assert turn["empty"] is False
+          PY
+
+      - name: Render rich face
+        run: python3 scripts/bmo-face-rich.py idle
+
+      - name: Dry-run launch flow
+        run: BMO_RUNTIME_ENV_FILE=workflows/test-bmo-runtime-v2.env python3 scripts/bmo-runtime-launch.py --dry-run --once "hello bmo" --output workflows/bmo-runtime-launch.json
+
+      - name: Assert launch schema
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          launch = json.loads(Path("workflows/bmo-runtime-launch.json").read_text(encoding="utf-8"))
+          assert launch["dry_run"] is True
+          assert launch["model"]
+          assert launch["face_script"]
+          PY

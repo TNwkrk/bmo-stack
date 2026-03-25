@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ENV_FILE = Path(os.environ.get("BMO_RUNTIME_ENV_FILE", str(Path.home() / ".config" / "bmo-runtime.env")))
-DEFAULT_MODEL = "gemma3:1b"
+DEFAULT_MODEL = "nemotron-mini:4b-instruct-q2_K"
 DEFAULT_ENDPOINT = "http://127.0.0.1:11434/api/generate"
 DEFAULT_MAX_SENTENCES = 4
 DEFAULT_TIMEOUT = 60
@@ -46,9 +46,27 @@ def load_env_file(path: Path) -> None:
         os.environ.setdefault(key, parse_env_value(value))
 
 
+def resolve_face_script() -> Path:
+    explicit = os.environ.get("BMO_FACE_SCRIPT", "").strip()
+    if explicit:
+        candidate = Path(explicit).expanduser()
+        if candidate.exists():
+            return candidate
+    renderer = os.environ.get("BMO_FACE_RENDERER", "basic").strip().lower()
+    rich = ROOT / "scripts" / "bmo-face-rich.py"
+    basic = ROOT / "scripts" / "bmo-face.sh"
+    if renderer == "rich" and rich.exists():
+        return rich
+    return basic
+
+
 def call_face(state: str) -> None:
-    face_script = ROOT / "scripts" / "bmo-face.sh"
-    if face_script.exists():
+    face_script = resolve_face_script()
+    if not face_script.exists():
+        return
+    if face_script.suffix == ".py":
+        subprocess.run([sys.executable, str(face_script), state], check=False)
+    else:
         subprocess.run(["bash", str(face_script), state], check=False)
 
 
