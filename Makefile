@@ -1,4 +1,4 @@
-.PHONY: up down status logs doctor sync-context sync-context-host-to-repo sync-context-repo-to-host worker-create worker-upload-config worker-connect worker-status openclaw-start openclaw-status recover-session worker-ready health-check doctor-plus checkpoint omni-sync omni-doctor omni-launch recover-bmo update-all runtime-doctor runtime-profile-dev runtime-profile-snappy runtime-profile-robust runtime-face-idle runtime-loop
+.PHONY: up down status logs doctor sync-context sync-context-host-to-repo sync-context-repo-to-host worker-create worker-upload-config worker-connect worker-status openclaw-start openclaw-status recover-session worker-ready health-check doctor-plus checkpoint omni-sync omni-doctor omni-launch recover-bmo update-all runtime-doctor runtime-profile-dev runtime-profile-snappy runtime-profile-robust runtime-face-idle runtime-loop runtime-router runtime-profile2-dev runtime-profile2-snappy runtime-profile2-robust workspace-sync site-caretaker launchd-install
 
 # Docker Compose file
 COMPOSE_FILE=compose.yaml
@@ -125,11 +125,32 @@ runtime-profile-snappy:
 runtime-profile-robust:
 	@python3 ./scripts/apply-bmo-runtime-profile.py robust
 
+runtime-profile2-dev:
+	@python3 ./scripts/apply-bmo-runtime-profile-v2.py dev
+
+runtime-profile2-snappy:
+	@python3 ./scripts/apply-bmo-runtime-profile-v2.py snappy
+
+runtime-profile2-robust:
+	@python3 ./scripts/apply-bmo-runtime-profile-v2.py robust
+
 runtime-face-idle:
 	@bash ./scripts/bmo-face.sh idle
 
 runtime-loop:
 	@python3 ./scripts/bmo_voice_loop.py
+
+runtime-router:
+	@python3 ./scripts/bmo-model-router.py --task "$(if $(ARGS),$(ARGS),hello bmo)"
+
+workspace-sync:
+	@python3 ./scripts/bmo-workspace-sync.py $(if $(ARGS),$(ARGS))
+
+site-caretaker:
+	@python3 ./scripts/bmo-site-caretaker.py $(if $(ARGS),$(ARGS))
+
+launchd-install:
+	@python3 ./scripts/bmo-launchd-install.py $(if $(ARGS),$(ARGS))
 
 # omni-bmo bridge targets
 omni-sync:
