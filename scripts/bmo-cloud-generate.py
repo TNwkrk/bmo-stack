@@ -31,13 +31,16 @@ def parse_env_value(raw_value: str) -> str:
 def load_env_file(path: Path) -> None:
     if not path.exists():
         return
+    preserved_keys = set(os.environ)
     for line in path.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("#") or "=" not in stripped:
             continue
         key, value = stripped.split("=", 1)
         key = key.removeprefix("export ").strip()
-        os.environ.setdefault(key, parse_env_value(value))
+        if key in preserved_keys:
+            continue
+        os.environ[key] = parse_env_value(value)
 
 
 def request_contract(api_style: str, model: str, prompt: str, system_prompt: str) -> dict[str, object]:
