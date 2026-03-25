@@ -1,4 +1,4 @@
-.PHONY: up down status logs doctor sync-context sync-context-host-to-repo sync-context-repo-to-host worker-create worker-upload-config worker-connect worker-status openclaw-start openclaw-status recover-session worker-ready health-check doctor-plus checkpoint omni-sync omni-doctor omni-launch recover-bmo update-all runtime-doctor runtime-profile-dev runtime-profile-snappy runtime-profile-robust runtime-face-idle runtime-loop runtime-router runtime-profile2-dev runtime-profile2-snappy runtime-profile2-robust runtime-stt-once runtime-face-rich-idle runtime-launch runtime-launch-dry runtime-cloud-once runtime-cloud-dry workspace-sync site-caretaker site-route-report site-work-report site-route-scaffold site-route-update site-donor-extract site-page-checklist site-parity-matrix site-react-template launchd-install
+.PHONY: up down status logs doctor sync-context sync-context-host-to-repo sync-context-repo-to-host worker-create worker-upload-config worker-connect worker-status openclaw-start openclaw-status recover-session worker-ready health-check doctor-plus checkpoint omni-sync omni-doctor omni-launch recover-bmo update-all runtime-doctor runtime-profile-dev runtime-profile-snappy runtime-profile-robust runtime-face-idle runtime-loop runtime-router runtime-profile2-dev runtime-profile2-snappy runtime-profile2-robust runtime-stt-once runtime-face-rich-idle runtime-launch runtime-launch-dry runtime-cloud-once runtime-cloud-dry workspace-sync site-caretaker site-route-report site-work-report site-route-scaffold site-route-update site-donor-extract site-page-checklist site-parity-matrix site-parity-report site-parity-update site-react-template launchd-install
 
 # Docker Compose file
 COMPOSE_FILE=compose.yaml
@@ -180,6 +180,12 @@ site-page-checklist:
 
 site-parity-matrix:
 	@cat ./context/sites/prismtek.dev/FUNCTIONAL_PARITY_MATRIX.md
+
+site-parity-report:
+	@python3 ./scripts/prismtek_site_parity_report.py
+
+site-parity-update:
+	@python3 ./scripts/prismtek_site_parity_update.py $(if $(ARGS),$(ARGS))
 
 site-react-template:
 	@cat ./context/sites/prismtek.dev/REACT_TEMPLATE.md
