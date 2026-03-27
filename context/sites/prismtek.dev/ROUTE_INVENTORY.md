@@ -5,26 +5,27 @@ The machine-readable source is `context/sites/prismtek.dev/ROUTES.json`.
 
 ## Priority order
 
-### P0 — build first
+### P0 - build first
 
-- `/` — Home
-- `/arcade-games/` — Arcade Games
-- `/projects/` — Projects
-- `/downloads/` — Downloads
-- `/build-log/` — Build Log
+- `/` - Home
+- `/arcade-games/` - Arcade Games
+- `/projects/` - Projects
+- `/downloads/` - Downloads
+- `/build-log/` - Build Log
 
-### P1 — build after core content routes
+### P1 - build after core content routes
 
-- `/pixel-studio/` — Pixel Studio
-- `/community-center/` — Community Center
-- `/prism-creatures/` — Prism Creatures
-- `/my-account/` — My Account
+- `/pixel-studio/` - Pixel Studio
+- `/community-center/` - Community Center
+- `/prism-creatures/` - Prism Creatures
+- `/my-account/` - My Account
+- `/mission-control/` - Mission Control
 
-### P2 — build after core parity is stable
+### P2 - build after core parity is stable
 
-- `/memory-wall/` — Memory Wall
-- `/school-safe/` — School Safe
-- `/links/` — Links
+- `/memory-wall/` - Memory Wall
+- `/school-safe/` - School Safe
+- `/links/` - Links
 
 ## Homepage sections currently discovered
 
@@ -35,6 +36,12 @@ The machine-readable source is `context/sites/prismtek.dev/ROUTES.json`.
 - creature showcase
 - account actions
 - footer
+
+## Special route note
+
+- `/mission-control/` currently exists in the donor site as the public web handoff surface for app access.
+- In `prismtek-site`, the HTML route redirects to `/my-account/`, and the Cloudflare Pages function proxies requests to `app.prismtek.dev`.
+- That means `bmo-stack` does not currently own the live `prismtek.dev` web chat implementation by itself.
 
 ## Execution rule
 

@@ -18,6 +18,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       - name: Validate key files exist
         run: |
           test -f README.md
@@ -62,3 +67,12 @@ jobs:
           test -f context/SYSTEMMAP.md
           test -f context/RUNBOOK.md
           test -f context/BACKLOG.md
+
+      - name: Validate GitHub automation contract
+        run: node scripts/validate-github-automation.mjs
+
+      - name: Validate council spawn manifest
+        run: node scripts/council-manifest.mjs validate
+
+      - name: Validate BMO routines
+        run: node scripts/bmo-routines.mjs validate

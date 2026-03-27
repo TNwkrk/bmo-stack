@@ -30,6 +30,7 @@ Use three distinct truths during the migration:
 - `/memory-wall/`
 - `/prism-creatures/`
 - `/my-account/`
+- `/mission-control/`
 - `/school-safe/`
 - `/projects/`
 - `/downloads/`
@@ -41,3 +42,4 @@ Use three distinct truths during the migration:
 - Do not treat the React donor as the content truth.
 - Do not treat recovered content as proof of functional parity.
 - Do not mark a route accepted until the parity matrix and website checklist are both satisfied.
+- Do not claim a BMO web chat surface is live on `prismtek.dev` until the owner route stops merely redirecting or proxying to `app.prismtek.dev`.

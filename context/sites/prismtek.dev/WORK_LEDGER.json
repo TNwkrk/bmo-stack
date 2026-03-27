@@ -51,6 +51,19 @@
       "acceptance": "pending",
       "next_step": "Scaffold the route brief and donor intake.",
       "blockers": []
+    },
+    {
+      "route": "/mission-control/",
+      "label": "Mission Control",
+      "owner": "BMO",
+      "status": "blocked",
+      "phase": "handoff",
+      "acceptance": "pending",
+      "next_step": "Confirm whether prismtek.dev should keep proxying to app.prismtek.dev or move to a repo-owned BMO chat implementation in prismtek-site.",
+      "blockers": [
+        "Current donor route redirects or proxies to app.prismtek.dev instead of a repo-owned BMO chat UI.",
+        "prismtek-site cannot be checked out cleanly on Windows because the export contains invalid path characters for NTFS."
+      ]
     }
   ]
 }

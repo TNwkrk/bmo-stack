@@ -10,9 +10,10 @@ Use for:
 - route and asset inventory
 - Cloudflare Pages deployment assumptions
 
-Known donor fact:
+Known donor facts:
 - the repo describes itself as a static export of `prismtek.dev` for Cloudflare Pages hosting
 - custom domain: `prismtek.dev`
+- `/mission-control/` currently exists as the public web handoff route for app access
 
 ### `PrismBot`
 Use for:
@@ -20,7 +21,7 @@ Use for:
 - conversion-oriented page structure
 - reusable section patterns
 
-Known donor fact:
+Known donor facts:
 - `WEBSITE_FACTORY_STANDARD.md` defines a default Wix-like production pattern
 - `apps/prismbot-site/website-template-wixlike.html` is a reusable landing-page scaffold
 
@@ -45,6 +46,7 @@ Known donor fact:
 - `context/sites/prismtek.dev/WORK_LEDGER.md`
 - `context/sites/prismtek.dev/PRIORITY_ROUTE_PARITY.json`
 - `context/sites/prismtek.dev/PRIORITY_ROUTE_PARITY.md`
+- `context/sites/prismtek.dev/CHAT_AGENT_HANDOFF.md`
 - `context/sites/prismtek.dev/work-items/`
 - `context/sites/prismtek.dev/intake/`
 - `context/council/NEPTR_WEBSITE_CHECKLIST.md`
@@ -59,6 +61,7 @@ Start with high-traffic pages and shared section blocks first:
 3. projects
 4. downloads
 5. build log
+6. mission control handoff
 
 ## Done rule for website work
 

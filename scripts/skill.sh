@@ -188,6 +188,18 @@ run_skills_access_diagnosis() {
     show)
       show_skill skills-access-diagnosis
       ;;
+    run)
+      if command -v node >/dev/null 2>&1; then
+        node "$ROOT_DIR/scripts/skills-access-diagnosis.mjs"
+      elif command -v python3 >/dev/null 2>&1; then
+        python3 "$ROOT_DIR/scripts/skills_access_diagnosis.py"
+      elif command -v python >/dev/null 2>&1; then
+        python "$ROOT_DIR/scripts/skills_access_diagnosis.py"
+      else
+        echo "Error: skills-access-diagnosis requires node, python3, or python" >&2
+        exit 1
+      fi
+      ;;
     *)
       echo "Unknown action for skills-access-diagnosis: $action" >&2
       exit 1

@@ -34,5 +34,5 @@ Restart recovery:
 - If operating from ~/.openclaw/workspace or another mirror checkout, refresh the canonical workspace before claiming files are missing:
   - python3 ~/bmo-stack/scripts/bmo-workspace-sync.py --workspace-dir ~/.openclaw/workspace/bmo-stack --host-context ~/bmo-context
 - For runtime routing work, inspect scripts/bmo-model-router.py
-- For website migration and caretaker work, inspect scripts/bmo-site-caretaker.py
+- For website migration and caretaker work, inspect scripts/bmo-site-caretaker.mjs
 - Resume interrupted work when safe

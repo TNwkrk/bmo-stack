@@ -1,59 +1,76 @@
-version: 2
-lastUpdated: 2026-03-25
+version: 3
+lastUpdated: 2026-03-26
+strictMode: true
 
 members:
   - name: BMO
+    seat: runtime
     status: active
     zero_vote_streak: 0
     selection_rate_30: null
   - name: Prismo
+    seat: runtime
     status: active
     zero_vote_streak: 0
     selection_rate_30: null
   - name: NEPTR
-    status: active
-    zero_vote_streak: 0
-    selection_rate_30: null
-  - name: Finn
-    status: active
-    zero_vote_streak: 0
-    selection_rate_30: null
-  - name: Jake
-    status: active
-    zero_vote_streak: 0
-    selection_rate_30: null
-  - name: Marceline
+    seat: runtime
     status: active
     zero_vote_streak: 0
     selection_rate_30: null
   - name: Princess Bubblegum
+    seat: specialist
     status: active
     zero_vote_streak: 0
     selection_rate_30: null
-  - name: Peppermint Butler
+  - name: Finn
+    seat: specialist
     status: active
     zero_vote_streak: 0
     selection_rate_30: null
-  - name: Lady Rainicorn
+  - name: Jake
+    seat: specialist
+    status: active
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Marceline
+    seat: specialist
     status: active
     zero_vote_streak: 0
     selection_rate_30: null
   - name: Simon
+    seat: specialist
+    status: active
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Peppermint Butler
+    seat: specialist
+    status: active
+    zero_vote_streak: 0
+    selection_rate_30: null
+  - name: Lady Rainicorn
+    seat: specialist
     status: active
     zero_vote_streak: 0
     selection_rate_30: null
   - name: Lemongrab
+    seat: specialist
     status: active
     zero_vote_streak: 0
     selection_rate_30: null
+  - name: Flame Princess
+    seat: specialist
+    status: active
+    zero_vote_streak: 0
+    selection_rate_30: null
+
+workers:
   - name: Cosmic Owl
+    kind: github-worker
     status: active
-    zero_vote_streak: 0
-    selection_rate_30: null
   - name: Moe
+    kind: github-worker
     status: active
-    zero_vote_streak: 0
-    selection_rate_30: null
 
 retiredMembers: []
 probationMembers: []
