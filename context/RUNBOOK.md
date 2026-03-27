@@ -37,6 +37,7 @@ This ordering is authoritative only when it matches `AGENTS.md` and
 Then:
 
 - check `git status` before asking the user to restate context
+- read `context/continuity/live-status.json` when present for repo, website, and MacBook continuity
 - resume interrupted work when the checkpoint files say it is safe
 - use `skills/index.json` only when you need the machine-readable trigger or action map for a
   repo-local skill

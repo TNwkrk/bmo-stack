@@ -37,6 +37,7 @@ After startup:
 
 - check `git status` before asking the user to restate anything
 - inspect interrupted work before starting something new
+- read `context/continuity/live-status.json` when present to pick up repo, website, and MacBook state quickly
 - resume safe work when the checkpoint files say it is safe
 - use `context/skills/SKILLS.md` before crawling the repo blindly
 

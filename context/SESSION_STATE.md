@@ -16,6 +16,7 @@ Important decisions:
 Restart recovery:
 - Authoritative startup sequence is in `context/RUNBOOK.md`, Restart Recovery Protocol.
 - Short form: `AGENTS.md` -> root quick-start files -> canonical `context/` docs -> skill indexes -> recent memory -> `TASK_STATE.md` and `WORK_IN_PROGRESS.md`.
+- Read `context/continuity/live-status.json` when it exists to pick up current repo, MacBook, and website state.
 - Inspect git status of the current repo before asking to restate anything.
 - Resume interrupted work when safe.
 

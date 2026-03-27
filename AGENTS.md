@@ -41,6 +41,7 @@ as a reliability bug and fix the contract before trusting startup state.
 
 - run `git status --short --branch` before asking the user to restate anything
 - inspect `TASK_STATE.md` and `WORK_IN_PROGRESS.md` for interrupted work
+- read `context/continuity/live-status.json` when present so repo, MacBook, and website drift is visible fast
 - use `context/skills/SKILLS.md` and `skills/README.md` before blind repo crawling
 
 ## Memory Naming

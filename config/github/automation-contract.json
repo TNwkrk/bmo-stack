@@ -37,6 +37,20 @@
       ]
     },
     {
+      "name": "Continuity Publisher",
+      "workflow_file": ".github/workflows/publish-continuity.yml",
+      "workflow_name": "Publish continuity",
+      "execution_surface": "github-hosted",
+      "required_repo_vars": [
+        "PRISMTEK_CONTINUITY_URL"
+      ],
+      "required_strings": [
+        "scripts/bmo-continuity-report.mjs",
+        "PRISMTEK_CONTINUITY_URL",
+        "PRISMTEK_CONTINUITY_TOKEN"
+      ]
+    },
+    {
       "name": "Cosmic Owl",
       "workflow_file": ".github/workflows/github-caretaker.yml",
       "workflow_name": "Cosmic Owl GitHub Caretaker",
