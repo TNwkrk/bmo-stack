@@ -1,3 +1,8 @@
+param(
+  [switch]$SmokeTest,
+  [string]$WorkspacePath = ''
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -19,4 +24,4 @@ if (Test-Path $installState) {
   }
 }
 
-& $main
+& $main -SmokeTest:$SmokeTest -WorkspacePath $WorkspacePath

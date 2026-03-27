@@ -1,121 +1,77 @@
-# Windows Desktop
+# BMO Windows Workstation
 
-This workspace is the starting point for a Windows-native BMO app that bundles
-the host runtime and a safe execution broker.
+This app is the current Windows-native BMO operator shell in `bmo-stack`.
 
-## Target outcome
+It is intentionally local-first and boring:
 
-End users should be able to:
+- WinForms desktop shell
+- PowerShell broker and task runner
+- per-user install into `%LOCALAPPDATA%\Programs\BMO-Windows-Desktop`
+- mutable data under `%LOCALAPPDATA%\BMO`
+- explicit command preview and approval flow
+- persistent task history, logs, and exact command records
 
-1. install the app
-2. launch BMO
-3. pick or create a workspace
-4. chat naturally
-5. approve sensitive actions when needed
+## What is real now
 
-without installing WSL2, Docker Desktop, Python, Node, or OpenClaw first.
+- workspace and worktree switching with recent-workspace memory
+- repo status, branch, dirty state, changed files, and diffs
+- multi-task supervision with cancel, rerun, and output review
+- policy-aware command execution with allow, prompt, and deny states
+- editable workspace files inside the selected repo root
+- BMO routines, local skills, validation actions, and doc shortcuts loaded from repo manifests
+- runtime profile actions and operator health summary
+- smoke-test entrypoint for headless validation
 
-## Planned components
+## Current owner paths
 
-- `shell/` - desktop UI layer
-- `host/` - local orchestration service
-- `broker/` - restricted command runner
-- `policies/` - capability and approval rules
-- `fixtures/` - sample config and development data
+- `src/BMO.Desktop.ps1`
+  - app bootstrap and smoke-test entrypoint
+- `src/BMO.Workstation.ps1`
+  - WinForms workstation shell and task-supervision UI
+- `src/BMO.Broker.ps1`
+  - workspace, repo, policy, task, routine, skill, and validation services
+- `config/workstation-manifest.json`
+  - desktop-specific action map for docs, validation actions, runtime profiles, and skill links
+- `config/appsettings.example.json`
+  - durable settings template
+- `policies/capability-policy.example.json`
+  - command policy source of truth
 
-## Initial build strategy
-
-The repo now includes a runnable Windows MVP built with stock PowerShell and
-WinForms so it can work on a normal Windows install without extra developer
-prerequisites.
-
-Current pieces:
-
-- `launch.bat` - double-click launcher
-- `launch.ps1` - PowerShell launcher
-- `install.ps1` - per-user installer into `%LOCALAPPDATA%\Programs\BMO-Windows-Desktop`
-- `uninstall.ps1` - app removal flow
-- `src/BMO.Desktop.ps1` - desktop UI
-- `src/BMO.Broker.ps1` - workspace broker, offline assistant logic, optional
-  OpenAI-compatible provider bridge
-- `config/appsettings.example.json` - provider and app defaults
-- `build-portable.ps1` - zip packaging script
-- `build-exe-installer.ps1` - EXE installer build path for environments with
-  `ps2exe`, Inno Setup, and optionally `signtool`
-
-## How to test
-
-From this folder on Windows:
+## How to run
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\launch.ps1
 ```
 
-Or double-click `launch.bat`.
+Run the headless smoke test:
 
-To install for the current Windows user:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\src\BMO.Desktop.ps1 -SmokeTest -WorkspacePath C:\path\to\repo
+```
+
+Install for the current user:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-For a custom install path or sandboxed test:
+Package a portable bundle:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\install.ps1 -InstallRoot C:\temp\BMO-App -DataRoot C:\temp\BMO-Data -NoShortcuts
+powershell -ExecutionPolicy Bypass -File .\build-portable.ps1
 ```
 
-## What works now
+## Current boundaries
 
-- choose a workspace folder
-- save a default workspace
-- chat with an offline BMO helper
-- browse the workspace in a file tree with preview
-- run safe commands with `/cmd ...`
-- run explicitly unsafe commands with `/unsafe ...`
-- read files inside the workspace with `/read ...`
-- inspect broker policy with `/policy`
-- show repo status, backlog, and runbook with quick actions
-- write task records under `%LOCALAPPDATA%\BMO\tasks`
-- write logs under `%LOCALAPPDATA%\BMO\logs`
-- install desktop and Start Menu shortcuts
-- uninstall while preserving app data
-- package a portable zip with `build-portable.ps1`
+This is not a full Codex clone or full Visual Studio clone.
 
-## Optional cloud mode
+What it does provide today is a trustworthy local BMO workstation surface for:
 
-To enable richer chat replies, copy `config/appsettings.example.json` to
-`config/appsettings.json` and set:
+- repo inspection
+- source control review
+- supervised commands
+- routines and validations
+- skills and docs
+- local editing
 
-- `provider.mode` to `openai-compatible`
-- `provider.endpoint`
-- `provider.apiKey`
-- `provider.model`
-
-## Next step
-
-The next implementation milestone should still move this into a bundled
-desktop shell with sidecars, but this MVP is already testable on Windows.
-
-## Download bundles
-
-Packaging now produces:
-
-- `dist\BMO-Windows-Desktop.zip` - portable bundle
-- `dist\BMO-Windows-Desktop-Installer.zip` - installable bundle with
-  `Install BMO Windows Desktop.bat`
-
-## EXE installer path
-
-When you have a Windows packaging toolchain available, this repo also supports
-an EXE packaging path:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\build-exe-installer.ps1 -AppVersion 0.1.0 -SkipSigning
-```
-
-Required tools:
-
-- `Invoke-PS2EXE` from the `ps2exe` module
-- `ISCC.exe` from Inno Setup
-- optional `signtool.exe` plus a certificate thumbprint for signing
+Anything beyond that should be called future work until it is implemented here.

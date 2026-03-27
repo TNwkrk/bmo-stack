@@ -6,6 +6,39 @@ Ship a Windows-native BMO application that users can download and run without
 installing WSL2 or manually wiring together OpenClaw, NemoClaw, Docker, or
 other host prerequisites.
 
+## Current shipped state in this repo
+
+The repo now ships a real Windows workstation app under
+`apps/windows-desktop/`.
+
+Current implementation:
+
+- bootstrap: `apps/windows-desktop/src/BMO.Desktop.ps1`
+- UI shell: `apps/windows-desktop/src/BMO.Workstation.ps1`
+- broker and task services: `apps/windows-desktop/src/BMO.Broker.ps1`
+- desktop action manifest: `apps/windows-desktop/config/workstation-manifest.json`
+- policy source: `apps/windows-desktop/policies/capability-policy.example.json`
+
+Current stack choice:
+
+- UI: WinForms on stock Windows PowerShell
+- broker: PowerShell service layer
+- process model: single desktop process supervising child PowerShell command processes
+- task model: persistent JSON task records plus per-task stdout/stderr logs under `%LOCALAPPDATA%\BMO`
+
+Current practical capability:
+
+- workspace and worktree switching
+- repo status and diff review
+- supervised commands with allow/prompt/deny policy
+- routines, skills, validation actions, and docs loaded from repo manifests
+- editable workspace files
+- cancel, rerun, and task-log inspection
+- headless smoke-test validation
+
+This document still describes the longer-term bundled sidecar direction below,
+but those parts should be treated as proposed state, not current fact.
+
 The app should feel like:
 
 - download
