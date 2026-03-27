@@ -18,8 +18,8 @@ which openclaw >/dev/null 2>&1 || {
   echo "Error: openclaw not found"
   exit 1
 }
-which python3 >/dev/null 2>&1 || {
-  echo "Error: python3 not found"
+which node >/dev/null 2>&1 || {
+  echo "Error: node not found"
   exit 1
 }
 which rsync >/dev/null 2>&1 || {
@@ -51,6 +51,7 @@ rsync -a "$ROOT_DIR/context/" "$MAIN_WORKSPACE/context/"
 
 echo "Seeding worker workspace..."
 rsync -a --delete "$MAIN_WORKSPACE/" "$WORKER_WORKSPACE/"
+rm -f "$WORKER_WORKSPACE/memory.md" "$WORKER_WORKSPACE/MEMORY.md"
 cat >"$WORKER_WORKSPACE/IDENTITY.md" <<'EOF'
 # IDENTITY.md - Worker Identity
 
@@ -68,62 +69,70 @@ if [ -f "$MAIN_AGENT_DIR/auth-profiles.json" ]; then
 fi
 
 echo "Writing OpenClaw agent config..."
-python3 - "$CONFIG_PATH" "$MAIN_WORKSPACE" "$WORKER_WORKSPACE" <<'PY'
-import json
-import sys
-from pathlib import Path
+node - "$CONFIG_PATH" "$MAIN_WORKSPACE" "$WORKER_WORKSPACE" <<'JS'
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 
-config_path = Path(sys.argv[1])
-main_workspace = sys.argv[2].replace(str(Path.home()), "~")
-worker_workspace = sys.argv[3].replace(str(Path.home()), "~")
+const [, , configPathArg, mainWorkspaceArg, workerWorkspaceArg] = process.argv;
+const home = os.homedir();
 
-if config_path.exists():
-    text = config_path.read_text()
-    try:
-        config = json.loads(text) if text.strip() else {}
-    except Exception as exc:
-        raise SystemExit(
-            f"Error: {config_path} is not strict JSON. "
-            "Please normalize it with `openclaw config validate` or re-save it via `openclaw config set` first."
-        ) from exc
-else:
-    config = {}
+function toTildePath(inputPath) {
+  return inputPath.startsWith(home) ? inputPath.replace(home, "~") : inputPath;
+}
 
-def upsert_agent(agent):
-    agents = config.setdefault("agents", {})
-    lst = agents.setdefault("list", [])
-    for idx, item in enumerate(lst):
-        if item.get("id") == agent["id"]:
-            merged = dict(item)
-            merged.update(agent)
-            lst[idx] = merged
-            return
-    lst.append(agent)
+function upsertAgent(config, agent) {
+  const agents = (config.agents ??= {});
+  const list = (agents.list ??= []);
+  const index = list.findIndex((item) => item.id === agent.id);
+  if (index >= 0) {
+    list[index] = { ...list[index], ...agent };
+    return;
+  }
+  list.push(agent);
+}
 
-defaults = config.setdefault("agents", {}).setdefault("defaults", {})
-defaults["workspace"] = main_workspace
-defaults["sandbox"] = {"mode": "off"}
+const configPath = configPathArg;
+const mainWorkspace = toTildePath(mainWorkspaceArg);
+const workerWorkspace = toTildePath(workerWorkspaceArg);
 
-upsert_agent({
-    "id": "main",
-    "default": True,
-    "workspace": main_workspace,
-    "sandbox": {"mode": "off"},
-})
+let config = {};
+if (fs.existsSync(configPath)) {
+  const text = fs.readFileSync(configPath, "utf8");
+  try {
+    config = text.trim() ? JSON.parse(text) : {};
+  } catch (error) {
+    console.error(
+      `Error: ${configPath} is not strict JSON. Please normalize it with \`openclaw config validate\` or re-save it via \`openclaw config set\` first.`,
+    );
+    process.exit(1);
+  }
+}
 
-upsert_agent({
-    "id": "bmo-tron",
-    "workspace": worker_workspace,
-    "sandbox": {
-        "mode": "all",
-        "scope": "agent",
-        "docker": {"network": "bridge"},
-    },
-})
+const defaults = ((config.agents ??= {}).defaults ??= {});
+defaults.workspace = mainWorkspace;
+defaults.sandbox = { mode: "off" };
 
-config_path.parent.mkdir(parents=True, exist_ok=True)
-config_path.write_text(json.dumps(config, indent=2) + "\n")
-PY
+upsertAgent(config, {
+  id: "main",
+  default: true,
+  workspace: mainWorkspace,
+  sandbox: { mode: "off" },
+});
+
+upsertAgent(config, {
+  id: "bmo-tron",
+  workspace: workerWorkspace,
+  sandbox: {
+    mode: "all",
+    scope: "agent",
+    docker: { network: "bridge" },
+  },
+});
+
+fs.mkdirSync(path.dirname(configPath), { recursive: true });
+fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+JS
 
 echo "Refreshing identities..."
 openclaw agents set-identity --workspace "$MAIN_WORKSPACE" --from-identity >/dev/null

@@ -31,6 +31,7 @@ if [ -d "$ROOT_DIR/config/skills" ]; then
 fi
 
 rsync -a --delete "$HOST_WORKSPACE/" "$WORKER_WORKSPACE/"
+rm -f "$WORKER_WORKSPACE/memory.md" "$WORKER_WORKSPACE/MEMORY.md"
 
 echo "Synced BMO repo state into OpenClaw workspaces."
 echo "Host workspace: $HOST_WORKSPACE"
