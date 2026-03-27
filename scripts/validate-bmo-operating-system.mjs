@@ -24,6 +24,8 @@ const requiredFiles = [
   "routines.md",
   "RESPONSE_GUIDE.md",
   "HEARTBEAT.md",
+  "scripts/configure-openclaw-agents.sh",
+  "scripts/sync-openclaw-workspaces.sh",
   "context/identity/AGENTS.md",
   "context/identity/SOUL.md",
   "context/identity/USER.md",
@@ -64,6 +66,13 @@ const wip = read("WORK_IN_PROGRESS.md");
 for (const stale of ["/home/prismtek/.openclaw/workspace/bmo-stack", "beginner-onboarding"]) {
   if (taskState.includes(stale) || wip.includes(stale)) {
     fail(`stale checkpoint reference still present: ${stale}`);
+  }
+}
+
+for (const file of ["scripts/configure-openclaw-agents.sh", "scripts/sync-openclaw-workspaces.sh"]) {
+  const script = read(file);
+  if (!script.includes("memory.md") || !script.includes("WORKER_WORKSPACE")) {
+    fail(`${file} must handle worker memory.md propagation explicitly`);
   }
 }
 

@@ -50,7 +50,8 @@ fi
 rsync -a "$ROOT_DIR/context/" "$MAIN_WORKSPACE/context/"
 
 echo "Seeding worker workspace..."
-rsync -a --delete "$MAIN_WORKSPACE/" "$WORKER_WORKSPACE/"
+rsync -a --delete --exclude 'memory.md' --exclude 'MEMORY.md' "$MAIN_WORKSPACE/" "$WORKER_WORKSPACE/"
+rm -f "$WORKER_WORKSPACE/memory.md" "$WORKER_WORKSPACE/MEMORY.md"
 cat >"$WORKER_WORKSPACE/IDENTITY.md" <<'EOF'
 # IDENTITY.md - Worker Identity
 
