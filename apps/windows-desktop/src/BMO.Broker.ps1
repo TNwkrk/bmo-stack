@@ -1,7 +1,39 @@
 Set-StrictMode -Version Latest
 
+if (-not (Get-Variable -Name BmoProcessTasks -Scope Script -ErrorAction SilentlyContinue)) {
+  $script:BmoProcessTasks = @{}
+}
+
 function Get-BmoAppRoot {
   return Split-Path -Parent $PSScriptRoot
+}
+
+function Get-BmoPropertyValue {
+  param(
+    [Parameter(Mandatory = $true)]
+    [object]$Object,
+    [Parameter(Mandatory = $true)]
+    [string]$Name,
+    $Default = $null
+  )
+
+  if ($null -eq $Object) {
+    return $Default
+  }
+
+  if ($Object -is [System.Collections.IDictionary]) {
+    if ($Object.Contains($Name)) {
+      return $Object[$Name]
+    }
+    return $Default
+  }
+
+  $property = $Object.PSObject.Properties[$Name]
+  if ($null -eq $property) {
+    return $Default
+  }
+
+  return $property.Value
 }
 
 function Test-BmoWritableDirectory {
@@ -36,8 +68,9 @@ function Get-BmoDataRoot {
   } elseif (Test-Path $statePath) {
     try {
       $state = Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json
-      if (-not [string]::IsNullOrWhiteSpace($state.dataRoot)) {
-        $configured = $state.dataRoot
+      $stateDataRoot = Get-BmoPropertyValue -Object $state -Name 'dataRoot' -Default ''
+      if (-not [string]::IsNullOrWhiteSpace($stateDataRoot)) {
+        $configured = $stateDataRoot
       }
     } catch {
       $configured = $null
@@ -45,7 +78,9 @@ function Get-BmoDataRoot {
   }
 
   $candidates = @()
-  if (-not [string]::IsNullOrWhiteSpace($configured)) { $candidates += $configured }
+  if (-not [string]::IsNullOrWhiteSpace($configured)) {
+    $candidates += $configured
+  }
   $candidates += $preferred
   $candidates += $portable
 
@@ -62,10 +97,12 @@ function Initialize-BmoDataDirs {
   $root = Get-BmoDataRoot
   $paths = @(
     $root,
+    (Join-Path $root 'cache'),
     (Join-Path $root 'config'),
     (Join-Path $root 'logs'),
-    (Join-Path $root 'tasks'),
+    (Join-Path $root 'logs\task-runs'),
     (Join-Path $root 'memory'),
+    (Join-Path $root 'tasks'),
     (Join-Path $root 'workspaces')
   )
 
@@ -79,8 +116,42 @@ function Get-BmoSettingsPath {
 }
 
 function Get-BmoSettingsTemplatePath {
-  $appRoot = Get-BmoAppRoot
-  return Join-Path $appRoot 'config\appsettings.example.json'
+  return Join-Path (Get-BmoAppRoot) 'config\appsettings.example.json'
+}
+
+function Merge-BmoSettingsDefaults {
+  param([object]$Settings)
+
+  $provider = [ordered]@{
+    mode = 'offline'
+    endpoint = ''
+    apiKey = ''
+    model = ''
+  }
+
+  $inputProvider = Get-BmoPropertyValue -Object $Settings -Name 'provider' -Default $null
+  if ($null -ne $inputProvider) {
+    $provider.mode = [string](Get-BmoPropertyValue -Object $inputProvider -Name 'mode' -Default $provider.mode)
+    $provider.endpoint = [string](Get-BmoPropertyValue -Object $inputProvider -Name 'endpoint' -Default $provider.endpoint)
+    $provider.apiKey = [string](Get-BmoPropertyValue -Object $inputProvider -Name 'apiKey' -Default $provider.apiKey)
+    $provider.model = [string](Get-BmoPropertyValue -Object $inputProvider -Name 'model' -Default $provider.model)
+  }
+
+  $recent = Get-BmoPropertyValue -Object $Settings -Name 'recentWorkspaces' -Default @()
+  if ($recent -isnot [System.Array]) {
+    $recent = @($recent)
+  }
+
+  return [pscustomobject][ordered]@{
+    appName = [string](Get-BmoPropertyValue -Object $Settings -Name 'appName' -Default 'BMO Windows Desktop')
+    defaultWorkspace = [string](Get-BmoPropertyValue -Object $Settings -Name 'defaultWorkspace' -Default '')
+    recentWorkspaces = @($recent | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+    maxOutputCharacters = [int](Get-BmoPropertyValue -Object $Settings -Name 'maxOutputCharacters' -Default 12000)
+    maxRecentWorkspaces = [int](Get-BmoPropertyValue -Object $Settings -Name 'maxRecentWorkspaces' -Default 8)
+    preferredRuntimeProfile = [string](Get-BmoPropertyValue -Object $Settings -Name 'preferredRuntimeProfile' -Default 'dev')
+    safeExecutionMode = [string](Get-BmoPropertyValue -Object $Settings -Name 'safeExecutionMode' -Default 'prompt')
+    provider = [pscustomobject]$provider
+  }
 }
 
 function Initialize-BmoSettings {
@@ -92,12 +163,25 @@ function Initialize-BmoSettings {
     Copy-Item -LiteralPath $templatePath -Destination $settingsPath
   }
 
-  return Get-BmoSettings
+  $settings = Get-BmoSettings
+  Save-BmoSettings -Settings $settings
+  return $settings
 }
 
 function Get-BmoSettings {
   $settingsPath = Get-BmoSettingsPath
-  return Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
+  if (-not (Test-Path $settingsPath)) {
+    return Initialize-BmoSettings
+  }
+
+  $parsed = $null
+  try {
+    $parsed = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
+  } catch {
+    $parsed = $null
+  }
+
+  return (Merge-BmoSettingsDefaults -Settings $parsed)
 }
 
 function Save-BmoSettings {
@@ -107,13 +191,45 @@ function Save-BmoSettings {
   )
 
   $settingsPath = Get-BmoSettingsPath
-  $Settings | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $settingsPath -Encoding UTF8
+  $normalized = Merge-BmoSettingsDefaults -Settings $Settings
+  $normalized | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $settingsPath -Encoding UTF8
+}
+
+function Add-BmoRecentWorkspace {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath
+  )
+
+  $resolvedWorkspace = Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
+  $settings = Get-BmoSettings
+  $recent = @($settings.recentWorkspaces | Where-Object { $_ -and $_ -ne $resolvedWorkspace })
+  $recent = @($resolvedWorkspace) + $recent
+  $settings.recentWorkspaces = @($recent | Select-Object -First $settings.maxRecentWorkspaces)
+  if ([string]::IsNullOrWhiteSpace($settings.defaultWorkspace)) {
+    $settings.defaultWorkspace = $resolvedWorkspace
+  }
+  Save-BmoSettings -Settings $settings
 }
 
 function Get-BmoPolicy {
-  $appRoot = Get-BmoAppRoot
-  $policyPath = Join-Path $appRoot 'policies\capability-policy.example.json'
+  $policyPath = Join-Path (Get-BmoAppRoot) 'policies\capability-policy.example.json'
   return Get-Content -LiteralPath $policyPath -Raw | ConvertFrom-Json
+}
+
+function Get-BmoDesktopManifest {
+  $manifestPath = Join-Path (Get-BmoAppRoot) 'config\workstation-manifest.json'
+  if (-not (Test-Path $manifestPath)) {
+    return [pscustomobject]@{
+      version = 1
+      documentShortcuts = @()
+      validationActions = @()
+      runtimeProfiles = @()
+      skillActions = @()
+    }
+  }
+
+  return Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 }
 
 function Write-BmoLog {
@@ -129,29 +245,188 @@ function Write-BmoLog {
   Add-Content -LiteralPath $logPath -Value "[$timestamp][$Category] $Message"
 }
 
-function Write-BmoTaskRecord {
+function Get-BmoTaskDirectory {
+  return Join-Path (Get-BmoDataRoot) 'tasks'
+}
+
+function Get-BmoTaskRuntimeDirectory {
+  return Join-Path (Get-BmoDataRoot) 'logs\task-runs'
+}
+
+function Get-BmoTaskPath {
   param(
     [Parameter(Mandatory = $true)]
-    [string]$Prompt,
+    [string]$TaskId
+  )
+
+  return Join-Path (Get-BmoTaskDirectory) ($TaskId + '.json')
+}
+
+function New-BmoTaskRecord {
+  param(
     [Parameter(Mandatory = $true)]
-    [string]$Reply,
+    [string]$Title,
+    [Parameter(Mandatory = $true)]
+    [string]$TaskType,
     [Parameter(Mandatory = $true)]
     [string]$WorkspacePath,
-    [string]$Mode = 'chat'
+    [string]$InitiatedBy = 'operator',
+    [string]$Command = '',
+    [string]$PolicyDecision = 'allow',
+    [string]$Capability = 'workspace.exec.safe',
+    [string]$Notes = ''
+  )
+
+  return [pscustomobject][ordered]@{
+    id = [guid]::NewGuid().ToString()
+    title = $Title
+    taskType = $TaskType
+    initiatedBy = $InitiatedBy
+    workspace = $WorkspacePath
+    command = $Command
+    status = 'queued'
+    policyDecision = $PolicyDecision
+    capability = $Capability
+    notes = $Notes
+    startedAt = $null
+    completedAt = $null
+    exitCode = $null
+    stdoutPath = ''
+    stderrPath = ''
+    outputPreview = ''
+    prompt = ''
+    reply = ''
+    sourceTaskId = ''
+    pid = $null
+  }
+}
+
+function Save-BmoTaskRecord {
+  param(
+    [Parameter(Mandatory = $true)]
+    [pscustomobject]$Task
   )
 
   Initialize-BmoDataDirs
-  $record = [pscustomobject]@{
-    timestamp = (Get-Date).ToString('o')
-    mode = $Mode
-    workspace = $WorkspacePath
-    prompt = $Prompt
-    reply = $Reply
+  $path = Get-BmoTaskPath -TaskId $Task.id
+  $Task | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $path -Encoding UTF8
+}
+
+function Get-BmoTaskRecord {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$TaskId
+  )
+
+  $path = Get-BmoTaskPath -TaskId $TaskId
+  if (-not (Test-Path $path)) {
+    return $null
   }
 
-  $fileName = '{0}.json' -f ([guid]::NewGuid().ToString())
-  $path = Join-Path (Get-BmoDataRoot) ('tasks\' + $fileName)
-  $record | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $path -Encoding UTF8
+  return Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+}
+
+function Update-BmoTaskRecord {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$TaskId,
+    [Parameter(Mandatory = $true)]
+    [hashtable]$Changes
+  )
+
+  $task = Get-BmoTaskRecord -TaskId $TaskId
+  if ($null -eq $task) {
+    throw "Unknown task id: $TaskId"
+  }
+
+  foreach ($key in $Changes.Keys) {
+    $existing = $task.PSObject.Properties[$key]
+    if ($null -eq $existing) {
+      $task | Add-Member -NotePropertyName $key -NotePropertyValue $Changes[$key] -Force
+    } else {
+      $task.$key = $Changes[$key]
+    }
+  }
+
+  Save-BmoTaskRecord -Task $task
+  return $task
+}
+
+function Get-BmoTaskHistory {
+  param(
+    [int]$Limit = 200,
+    [string]$WorkspacePath = ''
+  )
+
+  Initialize-BmoDataDirs
+  $items = Get-ChildItem -LiteralPath (Get-BmoTaskDirectory) -Filter '*.json' -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending
+
+  $resolvedFilter = ''
+  if (-not [string]::IsNullOrWhiteSpace($WorkspacePath) -and (Test-BmoWorkspace -WorkspacePath $WorkspacePath)) {
+    $resolvedFilter = Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
+  }
+
+  $tasks = @()
+  foreach ($item in $items) {
+    if ($tasks.Count -ge $Limit) {
+      break
+    }
+
+    try {
+      $task = Get-Content -LiteralPath $item.FullName -Raw | ConvertFrom-Json
+      if (-not [string]::IsNullOrWhiteSpace($resolvedFilter) -and $task.workspace -ne $resolvedFilter) {
+        continue
+      }
+      $tasks += $task
+    } catch {
+    }
+  }
+
+  return $tasks
+}
+
+function Get-BmoMaxOutputCharacters {
+  $settings = Get-BmoSettings
+  return [Math]::Max(1000, [int]$settings.maxOutputCharacters)
+}
+
+function Get-BmoTruncatedText {
+  param(
+    [string]$Text,
+    [int]$MaxLength = 0
+  )
+
+  if ($null -eq $Text) {
+    return ''
+  }
+
+  if ($MaxLength -le 0) {
+    $MaxLength = Get-BmoMaxOutputCharacters
+  }
+
+  if ($Text.Length -le $MaxLength) {
+    return $Text
+  }
+
+  return $Text.Substring(0, $MaxLength) + "`r`n`r`n[Truncated]"
+}
+
+function Get-BmoRelativePathFromRoot {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$RootPath,
+    [Parameter(Mandatory = $true)]
+    [string]$TargetPath
+  )
+
+  $resolvedRoot = (Resolve-Path -LiteralPath $RootPath -ErrorAction Stop).Path
+  $resolvedTarget = (Resolve-Path -LiteralPath $TargetPath -ErrorAction Stop).Path
+
+  $rootUri = New-Object System.Uri($resolvedRoot.TrimEnd('\') + '\')
+  $targetUri = New-Object System.Uri($resolvedTarget)
+  $relative = $rootUri.MakeRelativeUri($targetUri).ToString()
+  return [System.Uri]::UnescapeDataString($relative).Replace('/', '\')
 }
 
 function Test-BmoWorkspace {
@@ -165,6 +440,7 @@ function Test-BmoWorkspace {
 
 function Resolve-BmoWorkspacePath {
   param(
+    [Parameter(Mandatory = $true)]
     [string]$WorkspacePath
   )
 
@@ -174,6 +450,140 @@ function Resolve-BmoWorkspacePath {
 
   $resolved = Resolve-Path -LiteralPath $WorkspacePath -ErrorAction Stop
   return $resolved.Path
+}
+
+function Test-BmoPathWithinWorkspace {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath,
+    [Parameter(Mandatory = $true)]
+    [string]$CandidatePath
+  )
+
+  $resolvedWorkspace = Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
+  $workspacePrefix = $resolvedWorkspace.TrimEnd('\') + '\'
+  $resolvedCandidate = (Resolve-Path -LiteralPath $CandidatePath -ErrorAction Stop).Path
+
+  if ($resolvedCandidate.Equals($resolvedWorkspace, [System.StringComparison]::OrdinalIgnoreCase)) {
+    return $true
+  }
+
+  return $resolvedCandidate.StartsWith($workspacePrefix, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Resolve-BmoWorkspaceItemPath {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath,
+    [Parameter(Mandatory = $true)]
+    [string]$RelativePath
+  )
+
+  $resolvedWorkspace = Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
+  $candidate = Join-Path $resolvedWorkspace $RelativePath
+  $resolvedCandidate = Resolve-Path -LiteralPath $candidate -ErrorAction Stop
+  $resolvedCandidatePath = $resolvedCandidate.Path
+
+  if (-not (Test-BmoPathWithinWorkspace -WorkspacePath $resolvedWorkspace -CandidatePath $resolvedCandidatePath)) {
+    throw 'Path is outside the workspace root.'
+  }
+
+  return $resolvedCandidatePath
+}
+
+function Get-BmoRelativePath {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath,
+    [Parameter(Mandatory = $true)]
+    [string]$TargetPath
+  )
+
+  return Get-BmoRelativePathFromRoot -RootPath (Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath) -TargetPath $TargetPath
+}
+
+function Test-BmoTextFile {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path
+  )
+
+  $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+  try {
+    $sampleLength = [Math]::Min($stream.Length, 4096)
+    $buffer = New-Object byte[] $sampleLength
+    [void]$stream.Read($buffer, 0, $sampleLength)
+    foreach ($byte in $buffer) {
+      if ($byte -eq 0) {
+        return $false
+      }
+    }
+    return $true
+  } finally {
+    $stream.Dispose()
+  }
+}
+
+function Read-BmoWorkspaceFile {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath,
+    [Parameter(Mandatory = $true)]
+    [string]$RelativePath,
+    [switch]$NoTruncate
+  )
+
+  $resolvedFilePath = Resolve-BmoWorkspaceItemPath -WorkspacePath $WorkspacePath -RelativePath $RelativePath
+  $item = Get-Item -LiteralPath $resolvedFilePath -ErrorAction Stop
+  if ($item.PSIsContainer) {
+    throw 'Cannot read a directory. Choose a file instead.'
+  }
+
+  if (-not (Test-BmoTextFile -Path $resolvedFilePath)) {
+    return "[Binary or unsupported file preview disabled] $RelativePath"
+  }
+
+  $content = Get-Content -LiteralPath $resolvedFilePath -Raw
+  if ($NoTruncate) {
+    return $content
+  }
+
+  return Get-BmoTruncatedText -Text $content
+}
+
+function Write-BmoWorkspaceFile {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath,
+    [Parameter(Mandatory = $true)]
+    [string]$RelativePath,
+    [Parameter(Mandatory = $true)]
+    [string]$Content
+  )
+
+  $resolvedWorkspace = Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
+  $targetPath = Join-Path $resolvedWorkspace $RelativePath
+  $parentPath = Split-Path -Parent $targetPath
+
+  if (-not [string]::IsNullOrWhiteSpace($parentPath)) {
+    if (-not (Test-Path $parentPath)) {
+      New-Item -ItemType Directory -Path $parentPath -Force | Out-Null
+    }
+
+    $resolvedParent = (Resolve-Path -LiteralPath $parentPath -ErrorAction Stop).Path
+    if (-not (Test-BmoPathWithinWorkspace -WorkspacePath $resolvedWorkspace -CandidatePath $resolvedParent)) {
+      throw 'Write blocked: parent path is outside the workspace root.'
+    }
+  }
+
+  Set-Content -LiteralPath $targetPath -Value $Content -Encoding UTF8
+  $resolvedTargetPath = (Resolve-Path -LiteralPath $targetPath -ErrorAction Stop).Path
+  if (-not (Test-BmoPathWithinWorkspace -WorkspacePath $resolvedWorkspace -CandidatePath $resolvedTargetPath)) {
+    throw 'Write blocked: target path escaped the workspace root.'
+  }
+
+  Write-BmoLog -Category 'workspace-write' -Message ("workspace={0} file={1}" -f $resolvedWorkspace, $RelativePath)
+  return $resolvedTargetPath
 }
 
 function Get-BmoSafeCommands {
@@ -186,18 +596,160 @@ function Get-BmoSafeCommands {
 }
 
 function Get-BmoExactSafeCommands {
-  $safe = Get-BmoSafeCommands
-  return @($safe.exact)
+  return @((Get-BmoSafeCommands).exact)
 }
 
 function Get-BmoSafeCommandPrefixes {
-  $safe = Get-BmoSafeCommands
-  return @($safe.prefixes)
+  return @((Get-BmoSafeCommands).prefixes)
 }
 
 function Get-BmoBlockedTokens {
-  $safe = Get-BmoSafeCommands
-  return @($safe.blockedTokens)
+  return @((Get-BmoSafeCommands).blockedTokens)
+}
+
+function Get-BmoToolStatus {
+  $names = @('git', 'node', 'python', 'python3', 'bash', 'make', 'pwsh', 'powershell')
+  $result = @()
+
+  foreach ($name in $names) {
+    $command = Get-Command $name -ErrorAction SilentlyContinue | Select-Object -First 1
+    $result += [pscustomobject]@{
+      name = $name
+      available = ($null -ne $command)
+      path = if ($null -ne $command) { $command.Source } else { '' }
+    }
+  }
+
+  return $result
+}
+
+function Get-BmoCommandClassification {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$CommandText
+  )
+
+  $normalized = $CommandText.Trim()
+  if ([string]::IsNullOrWhiteSpace($normalized)) {
+    throw 'Enter a command first.'
+  }
+
+  $lower = $normalized.ToLowerInvariant()
+  $settings = Get-BmoSettings
+  $unknownMode = $settings.safeExecutionMode.ToLowerInvariant()
+
+  foreach ($token in Get-BmoBlockedTokens) {
+    if ($lower.Contains($token.ToLowerInvariant())) {
+      return [pscustomobject]@{
+        command = $normalized
+        decision = 'deny'
+        capability = 'policy.blocked'
+        riskLevel = 'high'
+        safe = $false
+        requiresApproval = $false
+        reason = "Blocked token matched: $token"
+      }
+    }
+  }
+
+  foreach ($candidate in Get-BmoExactSafeCommands) {
+    if ($lower -eq $candidate.ToLowerInvariant()) {
+      return [pscustomobject]@{
+        command = $normalized
+        decision = 'allow'
+        capability = 'workspace.exec.safe'
+        riskLevel = 'low'
+        safe = $true
+        requiresApproval = $false
+        reason = 'Command matched the safe exact allowlist.'
+      }
+    }
+  }
+
+  foreach ($prefix in Get-BmoSafeCommandPrefixes) {
+    if ($lower.StartsWith($prefix.ToLowerInvariant())) {
+      return [pscustomobject]@{
+        command = $normalized
+        decision = 'allow'
+        capability = 'workspace.exec.safe'
+        riskLevel = 'low'
+        safe = $true
+        requiresApproval = $false
+        reason = 'Command matched the safe prefix allowlist.'
+      }
+    }
+  }
+
+  $networkPrefixes = @('git fetch', 'git pull', 'git clone', 'npm ', 'pnpm ', 'yarn ', 'pip ', 'pip3 ')
+  foreach ($prefix in $networkPrefixes) {
+    if ($lower.StartsWith($prefix)) {
+      return [pscustomobject]@{
+        command = $normalized
+        decision = 'prompt'
+        capability = 'workspace.exec.network'
+        riskLevel = 'high'
+        safe = $false
+        requiresApproval = $true
+        reason = 'Network-capable command requires explicit approval.'
+      }
+    }
+  }
+
+  $gitMutators = @(
+    'git add', 'git commit', 'git checkout', 'git switch', 'git merge',
+    'git rebase', 'git stash', 'git cherry-pick', 'git reset', 'git revert',
+    'git rm', 'git push', 'git tag ', 'git branch -d', 'git branch -m'
+  )
+  foreach ($prefix in $gitMutators) {
+    if ($lower.StartsWith($prefix)) {
+      return [pscustomobject]@{
+        command = $normalized
+        decision = 'prompt'
+        capability = 'git.mutate'
+        riskLevel = 'medium'
+        safe = $false
+        requiresApproval = $true
+        reason = 'Git mutation requires explicit approval.'
+      }
+    }
+  }
+
+  $reviewPrefixes = @('make ', 'bash ', 'node ', 'python ', 'python3 ', 'pwsh ', 'powershell ', '.\scripts\', './scripts/')
+  foreach ($prefix in $reviewPrefixes) {
+    if ($lower.StartsWith($prefix)) {
+      return [pscustomobject]@{
+        command = $normalized
+        decision = 'prompt'
+        capability = 'workspace.exec.review'
+        riskLevel = 'medium'
+        safe = $false
+        requiresApproval = $true
+        reason = 'Scripted or composite command requires operator review.'
+      }
+    }
+  }
+
+  if ($unknownMode -eq 'deny' -or $unknownMode -eq 'deny-unknown') {
+    return [pscustomobject]@{
+      command = $normalized
+      decision = 'deny'
+      capability = 'workspace.exec.unknown'
+      riskLevel = 'medium'
+      safe = $false
+      requiresApproval = $false
+      reason = 'Unknown commands are denied by the current safe execution mode.'
+    }
+  }
+
+  return [pscustomobject]@{
+    command = $normalized
+    decision = 'prompt'
+    capability = 'workspace.exec.review'
+    riskLevel = 'medium'
+    safe = $false
+    requiresApproval = $true
+    reason = 'Unknown command requires explicit approval.'
+  }
 }
 
 function Test-BmoSafeCommand {
@@ -206,111 +758,241 @@ function Test-BmoSafeCommand {
     [string]$CommandText
   )
 
-  $normalized = $CommandText.Trim().ToLowerInvariant()
-
-  foreach ($token in Get-BmoBlockedTokens) {
-    if ($normalized.Contains($token.ToLowerInvariant())) {
-      return $false
-    }
-  }
-
-  foreach ($candidate in Get-BmoExactSafeCommands) {
-    if ($normalized -eq $candidate.ToLowerInvariant()) {
-      return $true
-    }
-  }
-
-  foreach ($prefix in Get-BmoSafeCommandPrefixes) {
-    if ($normalized.StartsWith($prefix.ToLowerInvariant())) {
-      return $true
-    }
-  }
-
-  return $false
+  return (Get-BmoCommandClassification -CommandText $CommandText).safe
 }
 
 function Get-BmoPolicySummary {
   $safe = Get-BmoSafeCommands
   $policy = Get-BmoPolicy
+  $settings = Get-BmoSettings
+
   return [pscustomobject]@{
     defaultMode = $policy.defaultMode
+    safeExecutionMode = $settings.safeExecutionMode
     exactSafeCommands = @($safe.exact)
     safePrefixes = @($safe.prefixes)
     blockedTokens = @($safe.blockedTokens)
   }
 }
 
-function Get-BmoRelativePath {
+function Get-BmoRepoRoot {
   param(
     [Parameter(Mandatory = $true)]
-    [string]$WorkspacePath,
-    [Parameter(Mandatory = $true)]
-    [string]$TargetPath
-  )
-
-  $workspaceUri = New-Object System.Uri((Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath).TrimEnd('\') + '\')
-  $targetUri = New-Object System.Uri((Resolve-Path -LiteralPath $TargetPath -ErrorAction Stop).Path)
-  $relative = $workspaceUri.MakeRelativeUri($targetUri).ToString()
-  return [System.Uri]::UnescapeDataString($relative).Replace('/', '\')
-}
-
-function Read-BmoWorkspaceFile {
-  param(
-    [Parameter(Mandatory = $true)]
-    [string]$WorkspacePath,
-    [Parameter(Mandatory = $true)]
-    [string]$RelativePath
+    [string]$WorkspacePath
   )
 
   $resolvedWorkspace = Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
-  $candidate = Join-Path $resolvedWorkspace $RelativePath
-  $resolvedFile = Resolve-Path -LiteralPath $candidate -ErrorAction Stop
-  $resolvedFilePath = $resolvedFile.Path
 
-  if (-not $resolvedFilePath.StartsWith($resolvedWorkspace, [System.StringComparison]::OrdinalIgnoreCase)) {
-    throw 'Read blocked: file is outside the workspace root.'
-  }
-
-  if ((Get-Item -LiteralPath $resolvedFilePath).PSIsContainer) {
-    throw 'Cannot read a directory. Choose a file instead.'
-  }
-
-  return Get-Content -LiteralPath $resolvedFilePath -Raw
-}
-
-function Invoke-BmoCommand {
-  param(
-    [Parameter(Mandatory = $true)]
-    [string]$WorkspacePath,
-    [Parameter(Mandatory = $true)]
-    [string]$CommandText,
-    [switch]$AllowUnsafe
-  )
-
-  $resolvedWorkspace = Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
-  if (-not $AllowUnsafe -and -not (Test-BmoSafeCommand -CommandText $CommandText)) {
-    throw "Command blocked by policy: $CommandText"
-  }
-
-  Push-Location $resolvedWorkspace
   try {
-    $output = & powershell -NoProfile -ExecutionPolicy Bypass -Command $CommandText 2>&1 | Out-String
-    if ($LASTEXITCODE -ne 0 -and [string]::IsNullOrWhiteSpace($output)) {
-      throw "Command failed with exit code $LASTEXITCODE"
+    $repoRoot = (& git -C $resolvedWorkspace rev-parse --show-toplevel 2>$null | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($repoRoot)) {
+      return $null
     }
-  } finally {
-    Pop-Location
+    return $repoRoot
+  } catch {
+    return $null
+  }
+}
+
+function Get-BmoWorkspaceBasePath {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath
+  )
+
+  $repoRoot = Get-BmoRepoRoot -WorkspacePath $WorkspacePath
+  if (-not [string]::IsNullOrWhiteSpace($repoRoot)) {
+    return $repoRoot
   }
 
-  $result = [pscustomobject]@{
-    command = $CommandText
+  return Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
+}
+
+function Get-BmoRepoChanges {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath
+  )
+
+  $resolvedWorkspace = Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
+  $repoRoot = Get-BmoRepoRoot -WorkspacePath $resolvedWorkspace
+  if ([string]::IsNullOrWhiteSpace($repoRoot)) {
+    return @()
+  }
+
+  $lines = & git -C $resolvedWorkspace status --porcelain=v1 -uall 2>$null
+  $changes = @()
+
+  foreach ($line in $lines) {
+    if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith('##')) {
+      continue
+    }
+
+    $indexStatus = $line.Substring(0, 1)
+    $worktreeStatus = $line.Substring(1, 1)
+    $pathText = $line.Substring(3).Trim()
+    $originalPath = ''
+
+    if ($pathText.Contains(' -> ')) {
+      $parts = $pathText -split ' -> '
+      if ($parts.Count -ge 2) {
+        $originalPath = $parts[0]
+        $pathText = $parts[-1]
+      }
+    }
+
+    $isUntracked = ($indexStatus -eq '?' -and $worktreeStatus -eq '?')
+    $summaryParts = @()
+    if ($indexStatus -ne ' ' -and $indexStatus -ne '?') { $summaryParts += "staged:$indexStatus" }
+    if ($worktreeStatus -ne ' ' -and $worktreeStatus -ne '?') { $summaryParts += "worktree:$worktreeStatus" }
+    if ($isUntracked) { $summaryParts += 'untracked' }
+    if (-not [string]::IsNullOrWhiteSpace($originalPath)) { $summaryParts += "from:$originalPath" }
+
+    $changes += [pscustomobject]@{
+      path = $pathText
+      originalPath = $originalPath
+      stagedStatus = if ($indexStatus -ne ' ' -and $indexStatus -ne '?') { $indexStatus } else { '' }
+      worktreeStatus = if ($worktreeStatus -ne ' ' -and $worktreeStatus -ne '?') { $worktreeStatus } else { '' }
+      isUntracked = $isUntracked
+      summary = ($summaryParts -join ', ')
+    }
+  }
+
+  return $changes
+}
+
+function Get-BmoWorktrees {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath
+  )
+
+  $repoRoot = Get-BmoRepoRoot -WorkspacePath $WorkspacePath
+  if ([string]::IsNullOrWhiteSpace($repoRoot)) {
+    return @()
+  }
+
+  $lines = & git -C $repoRoot worktree list --porcelain 2>$null
+  if ($LASTEXITCODE -ne 0) {
+    return @()
+  }
+
+  $worktrees = @()
+  $current = @{}
+
+  foreach ($line in @($lines + '')) {
+    if ([string]::IsNullOrWhiteSpace($line)) {
+      if ($current.ContainsKey('path')) {
+        $pathValue = [string]$current['path']
+        $normalizedPath = $pathValue.Replace('/', '\')
+        $currentWorkspace = (Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath).Replace('/', '\')
+        $worktrees += [pscustomobject]@{
+          path = $pathValue
+          branch = if ($current.ContainsKey('branch')) { [string]$current['branch'] } else { '' }
+          head = if ($current.ContainsKey('head')) { [string]$current['head'] } else { '' }
+          isCurrent = $normalizedPath.Equals($currentWorkspace, [System.StringComparison]::OrdinalIgnoreCase)
+          locked = if ($current.ContainsKey('locked')) { [bool]$current['locked'] } else { $false }
+        }
+      }
+      $current = @{}
+      continue
+    }
+
+    if ($line.StartsWith('worktree ')) {
+      $current['path'] = $line.Substring(9)
+    } elseif ($line.StartsWith('HEAD ')) {
+      $current['head'] = $line.Substring(5)
+    } elseif ($line.StartsWith('branch ')) {
+      $branchValue = $line.Substring(7)
+      $branchValue = $branchValue.Replace('refs/heads/', '')
+      $current['branch'] = $branchValue
+    } elseif ($line -eq 'detached') {
+      $current['branch'] = '(detached)'
+    } elseif ($line.StartsWith('locked')) {
+      $current['locked'] = $true
+    }
+  }
+
+  return $worktrees
+}
+
+function Get-BmoRepoInfo {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath
+  )
+
+  $resolvedWorkspace = Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
+  $repoRoot = Get-BmoRepoRoot -WorkspacePath $resolvedWorkspace
+
+  $result = [ordered]@{
     workspace = $resolvedWorkspace
-    output = $output.Trim()
-    safe = (Test-BmoSafeCommand -CommandText $CommandText)
+    isGitRepo = $false
+    repoRoot = ''
+    branch = ''
+    remoteBranch = ''
+    ahead = 0
+    behind = 0
+    dirty = $false
+    stagedCount = 0
+    unstagedCount = 0
+    untrackedCount = 0
+    statusHeader = ''
+    statusText = ''
+    changedFiles = @()
+    worktrees = @()
   }
 
-  Write-BmoLog -Category 'command' -Message ("workspace={0} safe={1} command={2}" -f $resolvedWorkspace, $result.safe, $CommandText)
-  return $result
+  if ([string]::IsNullOrWhiteSpace($repoRoot)) {
+    return [pscustomobject]$result
+  }
+
+  $statusText = (& git -C $resolvedWorkspace status --short --branch 2>$null | Out-String).Trim()
+  $statusHeader = ''
+  if (-not [string]::IsNullOrWhiteSpace($statusText)) {
+    $statusLines = $statusText -split "`r?`n"
+    if ($statusLines.Count -gt 0) {
+      $statusHeader = $statusLines[0].Replace('## ', '').Trim()
+    }
+  }
+
+  $branch = $statusHeader
+  $remoteBranch = ''
+  $ahead = 0
+  $behind = 0
+  if ($statusHeader -match '^(?<branch>.+?)(\.\.\.(?<remote>[^\[]+))?( \[(?<tracking>[^\]]+)\])?$') {
+    $branch = $Matches['branch'].Trim()
+    $remoteBranch = $Matches['remote']
+    $tracking = $Matches['tracking']
+    if ($tracking -match 'ahead (?<ahead>\d+)') {
+      $ahead = [int]$Matches['ahead']
+    }
+    if ($tracking -match 'behind (?<behind>\d+)') {
+      $behind = [int]$Matches['behind']
+    }
+  }
+
+  $changes = Get-BmoRepoChanges -WorkspacePath $resolvedWorkspace
+  $stagedCount = (@($changes | Where-Object { -not [string]::IsNullOrWhiteSpace($_.stagedStatus) })).Count
+  $unstagedCount = (@($changes | Where-Object { -not [string]::IsNullOrWhiteSpace($_.worktreeStatus) })).Count
+  $untrackedCount = (@($changes | Where-Object { $_.isUntracked })).Count
+
+  $result.isGitRepo = $true
+  $result.repoRoot = $repoRoot
+  $result.branch = $branch
+  $result.remoteBranch = $remoteBranch
+  $result.ahead = $ahead
+  $result.behind = $behind
+  $result.changedFiles = $changes
+  $result.stagedCount = $stagedCount
+  $result.unstagedCount = $unstagedCount
+  $result.untrackedCount = $untrackedCount
+  $result.dirty = ($changes.Count -gt 0)
+  $result.statusHeader = $statusHeader
+  $result.statusText = $statusText
+  $result.worktrees = Get-BmoWorktrees -WorkspacePath $resolvedWorkspace
+
+  return [pscustomobject]$result
 }
 
 function Get-BmoRepoSummary {
@@ -322,22 +1004,619 @@ function Get-BmoRepoSummary {
   $resolvedWorkspace = Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
   $items = Get-ChildItem -LiteralPath $resolvedWorkspace -Force | Select-Object -First 20
   $names = $items | ForEach-Object { $_.Name }
-  $gitStatus = ''
-
-  if (Test-Path (Join-Path $resolvedWorkspace '.git')) {
-    Push-Location $resolvedWorkspace
-    try {
-      $gitStatus = (& git status --short --branch 2>&1 | Out-String).Trim()
-    } finally {
-      Pop-Location
-    }
-  }
+  $repoInfo = Get-BmoRepoInfo -WorkspacePath $resolvedWorkspace
 
   return [pscustomobject]@{
     workspace = $resolvedWorkspace
     topLevelItems = $names
-    gitStatus = $gitStatus
+    gitStatus = $repoInfo.statusText
+    branch = $repoInfo.branch
+    dirty = $repoInfo.dirty
+    changedCount = $repoInfo.changedFiles.Count
   }
+}
+
+function Get-BmoRepoDiff {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath,
+    [Parameter(Mandatory = $true)]
+    [string]$RelativePath,
+    [ValidateSet('worktree', 'staged')]
+    [string]$Mode = 'worktree'
+  )
+
+  $repoRoot = Get-BmoRepoRoot -WorkspacePath $WorkspacePath
+  if ([string]::IsNullOrWhiteSpace($repoRoot)) {
+    return 'Git diff unavailable: workspace is not a git repo.'
+  }
+
+  $args = @('-C', $repoRoot, 'diff')
+  if ($Mode -eq 'staged') {
+    $args += '--cached'
+  }
+  $args += '--no-ext-diff'
+  $args += '--'
+  $args += $RelativePath
+
+  $diff = (& git @args 2>&1 | Out-String).Trim()
+  if ([string]::IsNullOrWhiteSpace($diff)) {
+    if ($Mode -eq 'staged') {
+      return '[No staged diff output for this file.]'
+    }
+    return '[No worktree diff output for this file. It may be untracked or already staged.]'
+  }
+
+  return Get-BmoTruncatedText -Text $diff
+}
+
+function Get-BmoDocumentShortcuts {
+  return @((Get-BmoDesktopManifest).documentShortcuts)
+}
+
+function Get-BmoDocumentContent {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath,
+    [Parameter(Mandatory = $true)]
+    [string]$RelativePath
+  )
+
+  $basePath = Get-BmoWorkspaceBasePath -WorkspacePath $WorkspacePath
+  $targetPath = Join-Path $basePath $RelativePath
+  if (-not (Test-Path $targetPath)) {
+    return "Document not found in workspace: $RelativePath"
+  }
+
+  return Get-BmoTruncatedText -Text (Get-Content -LiteralPath $targetPath -Raw)
+}
+
+function Get-BmoRoutinePack {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath
+  )
+
+  $basePath = Get-BmoWorkspaceBasePath -WorkspacePath $WorkspacePath
+  $path = Join-Path $basePath 'config\routines\bmo-core-routines.json'
+  if (-not (Test-Path $path)) {
+    return [pscustomobject]@{
+      version = 1
+      pack_name = ''
+      description = ''
+      routines = @()
+    }
+  }
+
+  return Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+}
+
+function Get-BmoValidationActions {
+  return @((Get-BmoDesktopManifest).validationActions)
+}
+
+function Get-BmoRuntimeProfiles {
+  return @((Get-BmoDesktopManifest).runtimeProfiles)
+}
+
+function Get-BmoSkillCatalog {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath
+  )
+
+  $basePath = Get-BmoWorkspaceBasePath -WorkspacePath $WorkspacePath
+  $skillsDir = Join-Path $basePath 'skills'
+  if (-not (Test-Path $skillsDir)) {
+    return @()
+  }
+
+  $baselinePath = Join-Path $basePath 'config\skills\bmo-baseline-pack.json'
+  $indexPath = Join-Path $skillsDir 'index.json'
+  $manifest = Get-BmoDesktopManifest
+
+  $baselineMap = @{}
+  if (Test-Path $baselinePath) {
+    try {
+      $baseline = Get-Content -LiteralPath $baselinePath -Raw | ConvertFrom-Json
+      foreach ($item in @($baseline.local_routines)) {
+        $baselineMap[$item.name] = $item
+      }
+    } catch {
+    }
+  }
+
+  $indexObject = $null
+  if (Test-Path $indexPath) {
+    try {
+      $indexObject = Get-Content -LiteralPath $indexPath -Raw | ConvertFrom-Json
+    } catch {
+      $indexObject = $null
+    }
+  }
+
+  $skillActionMap = @{}
+  foreach ($entry in @($manifest.skillActions)) {
+    $skillActionMap[$entry.skillId] = $entry
+  }
+
+  $catalog = @()
+  $directories = Get-ChildItem -LiteralPath $skillsDir -Directory | Sort-Object Name
+  foreach ($directory in $directories) {
+    $skillId = $directory.Name
+    $readmePath = Join-Path $directory.FullName 'README.md'
+    $relativeReadmePath = ''
+    if (Test-Path $readmePath) {
+      $relativeReadmePath = Get-BmoRelativePathFromRoot -RootPath $basePath -TargetPath $readmePath
+    }
+
+    $description = ''
+    if ($baselineMap.ContainsKey($skillId)) {
+      $description = [string]$baselineMap[$skillId].why
+    }
+
+    $skillAction = $null
+    if ($skillActionMap.ContainsKey($skillId)) {
+      $skillAction = $skillActionMap[$skillId]
+      if ([string]::IsNullOrWhiteSpace($description)) {
+        $description = [string]$skillAction.description
+      }
+    }
+
+    $indexEntry = $null
+    if ($null -ne $indexObject) {
+      $skillsProperty = $indexObject.PSObject.Properties['skills']
+      if ($null -ne $skillsProperty) {
+        $indexEntry = Get-BmoPropertyValue -Object $skillsProperty.Value -Name $skillId -Default $null
+      }
+    }
+
+    $triggers = @()
+    $defaultAction = ''
+    if ($null -ne $indexEntry) {
+      $triggers = @((Get-BmoPropertyValue -Object $indexEntry -Name 'triggers' -Default @()))
+      $defaultAction = [string](Get-BmoPropertyValue -Object $indexEntry -Name 'default_action' -Default '')
+      if ([string]::IsNullOrWhiteSpace($description) -and $triggers.Count -gt 0) {
+        $description = 'Triggers: ' + ($triggers -join ', ')
+      }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($description) -and (Test-Path $readmePath)) {
+      $lines = Get-Content -LiteralPath $readmePath
+      $bodyLines = $lines | Where-Object {
+        $trimmed = $_.Trim()
+        $trimmed.Length -gt 0 -and -not $trimmed.StartsWith('#')
+      }
+      if ($bodyLines.Count -gt 0) {
+        $description = ($bodyLines | Select-Object -First 2) -join ' '
+      }
+    }
+
+    $catalog += [pscustomobject]@{
+      id = $skillId
+      name = $skillId
+      description = $description
+      defaultAction = $defaultAction
+      triggers = $triggers
+      recommendedCommand = if ($null -ne $skillAction) { [string](Get-BmoPropertyValue -Object $skillAction -Name 'command' -Default '') } else { '' }
+      documentPath = if ($null -ne $skillAction -and -not [string]::IsNullOrWhiteSpace([string](Get-BmoPropertyValue -Object $skillAction -Name 'path' -Default ''))) {
+        [string](Get-BmoPropertyValue -Object $skillAction -Name 'path' -Default '')
+      } else {
+        $relativeReadmePath
+      }
+      readmePath = $relativeReadmePath
+    }
+  }
+
+  return $catalog
+}
+
+function Get-BmoNextStepGuidance {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath
+  )
+
+  $repoInfo = Get-BmoRepoInfo -WorkspacePath $WorkspacePath
+  $recentTasks = Get-BmoTaskHistory -WorkspacePath $WorkspacePath -Limit 20
+  $activeTaskCount = ($script:BmoProcessTasks.Keys).Count
+  $lines = @()
+
+  if (-not $repoInfo.isGitRepo) {
+    $lines += 'Pick a repo root or worktree root so BMO can light up source control, routines, and validation.'
+  } else {
+    if ($repoInfo.dirty) {
+      $lines += "Review $($repoInfo.changedFiles.Count) changed files in Source Control, then run a validation before claiming the repo is ready."
+    } else {
+      $lines += 'Repo is clean. Start with worker status, runtime doctor, or the operating-system validation.'
+    }
+
+    if ($repoInfo.worktrees.Count -gt 1) {
+      $lines += 'Multiple worktrees are available. Use the Source Control tab to switch the active workspace deliberately.'
+    }
+  }
+
+  $recentValidation = $recentTasks | Where-Object { $_.taskType -eq 'validation' } | Select-Object -First 1
+  if ($null -eq $recentValidation) {
+    $lines += 'No recent validation task is recorded for this workspace yet.'
+  } elseif ($recentValidation.status -ne 'succeeded') {
+    $lines += 'The most recent validation did not succeed. Inspect the task log before moving forward.'
+  }
+
+  if ($activeTaskCount -gt 0) {
+    $lines += "There are $activeTaskCount running tasks. Watch the Tasks tab for completion and exact output."
+  }
+
+  if ($lines.Count -eq 0) {
+    $lines += 'Open a repo, inspect diffs, run a routine, and keep validation results visible before making claims.'
+  }
+
+  return $lines -join "`r`n"
+}
+
+function Get-BmoCommitPrepNote {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath
+  )
+
+  $repoInfo = Get-BmoRepoInfo -WorkspacePath $WorkspacePath
+  if (-not $repoInfo.isGitRepo) {
+    return 'Commit prep note unavailable: active workspace is not a git repo.'
+  }
+
+  $recentTasks = Get-BmoTaskHistory -WorkspacePath $WorkspacePath -Limit 20 |
+    Where-Object { $_.taskType -in @('validation', 'routine', 'command') } |
+    Select-Object -First 5
+
+  $lines = @(
+    '# Change Summary',
+    '',
+    "Branch: $($repoInfo.branch)",
+    "Repo root: $($repoInfo.repoRoot)",
+    "Dirty: $($repoInfo.dirty)",
+    "Staged changes: $($repoInfo.stagedCount)",
+    "Unstaged changes: $($repoInfo.unstagedCount)",
+    "Untracked files: $($repoInfo.untrackedCount)",
+    ''
+  )
+
+  if ($repoInfo.changedFiles.Count -gt 0) {
+    $lines += 'Changed files:'
+    foreach ($change in $repoInfo.changedFiles) {
+      $statusBits = @()
+      if (-not [string]::IsNullOrWhiteSpace($change.stagedStatus)) { $statusBits += "staged:$($change.stagedStatus)" }
+      if (-not [string]::IsNullOrWhiteSpace($change.worktreeStatus)) { $statusBits += "worktree:$($change.worktreeStatus)" }
+      if ($change.isUntracked) { $statusBits += 'untracked' }
+      $lines += "- $($change.path) ($($statusBits -join ', '))"
+    }
+    $lines += ''
+  }
+
+  if ($recentTasks.Count -gt 0) {
+    $lines += 'Recent operator-visible tasks:'
+    foreach ($task in $recentTasks) {
+      $lines += "- [$($task.status)] $($task.title)"
+    }
+    $lines += ''
+  }
+
+  $lines += 'Validation note: include exact commands and task results that support this change.'
+  return $lines -join "`r`n"
+}
+
+function Get-BmoTaskOutputTextFromPaths {
+  param(
+    [string]$StdOutPath = '',
+    [string]$StdErrPath = ''
+  )
+
+  $parts = @()
+  if (-not [string]::IsNullOrWhiteSpace($StdOutPath) -and (Test-Path $StdOutPath)) {
+    $stdout = Get-Content -LiteralPath $StdOutPath -Raw
+    if (-not [string]::IsNullOrWhiteSpace($stdout)) {
+      $parts += "[stdout]`r`n$stdout"
+    }
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($StdErrPath) -and (Test-Path $StdErrPath)) {
+    $stderr = Get-Content -LiteralPath $StdErrPath -Raw
+    if (-not [string]::IsNullOrWhiteSpace($stderr)) {
+      $parts += "[stderr]`r`n$stderr"
+    }
+  }
+
+  if ($parts.Count -eq 0) {
+    return '[No output captured yet.]'
+  }
+
+  return ($parts -join "`r`n`r`n")
+}
+
+function Get-BmoTaskOutput {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$TaskId,
+    [switch]$NoTruncate
+  )
+
+  $task = Get-BmoTaskRecord -TaskId $TaskId
+  if ($null -eq $task) {
+    return "Unknown task id: $TaskId"
+  }
+
+  $parts = @(
+    "Title: $($task.title)",
+    "Type: $($task.taskType)",
+    "Status: $($task.status)",
+    "Workspace: $($task.workspace)"
+  )
+
+  if (-not [string]::IsNullOrWhiteSpace($task.command)) {
+    $parts += "Command: $($task.command)"
+  }
+  if ($null -ne $task.exitCode) {
+    $parts += "Exit code: $($task.exitCode)"
+  }
+  $parts += ''
+  $parts += (Get-BmoTaskOutputTextFromPaths -StdOutPath $task.stdoutPath -StdErrPath $task.stderrPath)
+
+  $text = $parts -join "`r`n"
+  if ($NoTruncate) {
+    return $text
+  }
+
+  return Get-BmoTruncatedText -Text $text
+}
+
+function Start-BmoProcessTask {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath,
+    [Parameter(Mandatory = $true)]
+    [string]$CommandText,
+    [string]$TaskType = 'command',
+    [string]$Title = '',
+    [string]$InitiatedBy = 'operator',
+    [string]$SourceTaskId = '',
+    [switch]$Approved
+  )
+
+  $resolvedWorkspace = Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
+  $classification = Get-BmoCommandClassification -CommandText $CommandText
+  if ($classification.decision -eq 'deny') {
+    throw "Command denied by policy: $($classification.reason)"
+  }
+
+  if ($classification.requiresApproval -and -not $Approved) {
+    throw "Approval required before running: $CommandText"
+  }
+
+  Add-BmoRecentWorkspace -WorkspacePath $resolvedWorkspace
+
+  if ([string]::IsNullOrWhiteSpace($Title)) {
+    $Title = $CommandText
+  }
+
+  $task = New-BmoTaskRecord -Title $Title -TaskType $TaskType -WorkspacePath $resolvedWorkspace `
+    -InitiatedBy $InitiatedBy -Command $CommandText -PolicyDecision $classification.decision `
+    -Capability $classification.capability -Notes $classification.reason
+  $task.status = 'running'
+  $task.startedAt = (Get-Date).ToString('o')
+  $task.sourceTaskId = $SourceTaskId
+
+  $stdoutPath = Join-Path (Get-BmoTaskRuntimeDirectory) ($task.id + '.stdout.log')
+  $stderrPath = Join-Path (Get-BmoTaskRuntimeDirectory) ($task.id + '.stderr.log')
+  '' | Set-Content -LiteralPath $stdoutPath -Encoding UTF8
+  '' | Set-Content -LiteralPath $stderrPath -Encoding UTF8
+
+  $task.stdoutPath = $stdoutPath
+  $task.stderrPath = $stderrPath
+  Save-BmoTaskRecord -Task $task
+
+  $encodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($CommandText))
+  $process = Start-Process -FilePath 'powershell.exe' `
+    -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $encodedCommand) `
+    -WorkingDirectory $resolvedWorkspace `
+    -RedirectStandardOutput $stdoutPath `
+    -RedirectStandardError $stderrPath `
+    -WindowStyle Hidden `
+    -PassThru
+
+  $task.pid = $process.Id
+  Save-BmoTaskRecord -Task $task
+
+  $script:BmoProcessTasks[$task.id] = @{
+    process = $process
+    stdoutPath = $stdoutPath
+    stderrPath = $stderrPath
+    cancelRequested = $false
+  }
+
+  Write-BmoLog -Category 'task-start' -Message ("task={0} type={1} workspace={2} command={3}" -f $task.id, $TaskType, $resolvedWorkspace, $CommandText)
+  return $task
+}
+
+function Sync-BmoActiveTasks {
+  $completed = @()
+  foreach ($taskId in @($script:BmoProcessTasks.Keys)) {
+    $entry = $script:BmoProcessTasks[$taskId]
+    $process = $entry.process
+
+    $process.Refresh()
+    if ($process.HasExited) {
+      $process.WaitForExit()
+      $task = Get-BmoTaskRecord -TaskId $taskId
+      if ($null -eq $task) {
+        $script:BmoProcessTasks.Remove($taskId)
+        continue
+      }
+
+      $exitCode = 1
+      try {
+        $exitCode = [int]$process.ExitCode
+      } catch {
+        $exitCode = 1
+      }
+
+      $status = if ($entry.cancelRequested) {
+        'canceled'
+      } elseif ($exitCode -eq 0) {
+        'succeeded'
+      } else {
+        'failed'
+      }
+
+      $outputPreview = Get-BmoTaskOutputTextFromPaths -StdOutPath $task.stdoutPath -StdErrPath $task.stderrPath
+      $task = Update-BmoTaskRecord -TaskId $taskId -Changes @{
+        status = $status
+        completedAt = (Get-Date).ToString('o')
+        exitCode = $exitCode
+        outputPreview = (Get-BmoTruncatedText -Text $outputPreview)
+      }
+
+      Write-BmoLog -Category 'task-finish' -Message ("task={0} status={1} exit={2}" -f $taskId, $status, $exitCode)
+      $process.Dispose()
+      $script:BmoProcessTasks.Remove($taskId)
+      $completed += $task
+    }
+  }
+
+  return $completed
+}
+
+function Get-BmoActiveTasks {
+  Sync-BmoActiveTasks | Out-Null
+  $taskIds = @($script:BmoProcessTasks.Keys)
+  $tasks = @()
+  foreach ($taskId in $taskIds) {
+    $task = Get-BmoTaskRecord -TaskId $taskId
+    if ($null -ne $task) {
+      $tasks += $task
+    }
+  }
+  return @($tasks)
+}
+
+function Stop-BmoTask {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$TaskId
+  )
+
+  if (-not $script:BmoProcessTasks.ContainsKey($TaskId)) {
+    return $false
+  }
+
+  $entry = $script:BmoProcessTasks[$TaskId]
+  $entry.cancelRequested = $true
+  $script:BmoProcessTasks[$TaskId] = $entry
+  Update-BmoTaskRecord -TaskId $TaskId -Changes @{ status = 'canceling' } | Out-Null
+  Stop-Process -Id $entry.process.Id -Force
+  Write-BmoLog -Category 'task-cancel' -Message ("task={0}" -f $TaskId)
+  return $true
+}
+
+function Restart-BmoTask {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$TaskId,
+    [switch]$Approved
+  )
+
+  $task = Get-BmoTaskRecord -TaskId $TaskId
+  if ($null -eq $task) {
+    throw "Unknown task id: $TaskId"
+  }
+
+  if ([string]::IsNullOrWhiteSpace($task.command)) {
+    throw 'Only command-backed tasks can be rerun.'
+  }
+
+  return Start-BmoProcessTask -WorkspacePath $task.workspace -CommandText $task.command `
+    -TaskType $task.taskType -Title $task.title -InitiatedBy 'operator' -SourceTaskId $TaskId -Approved:$Approved
+}
+
+function Invoke-BmoValidationAction {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath,
+    [Parameter(Mandatory = $true)]
+    [string]$ActionId,
+    [switch]$Approved
+  )
+
+  $action = @((Get-BmoValidationActions) | Where-Object { $_.id -eq $ActionId } | Select-Object -First 1)
+  if ($action.Count -eq 0) {
+    throw "Unknown validation action: $ActionId"
+  }
+
+  return Start-BmoProcessTask -WorkspacePath $WorkspacePath -CommandText $action[0].command `
+    -TaskType 'validation' -Title $action[0].name -InitiatedBy 'operator' -Approved:$Approved
+}
+
+function Invoke-BmoRoutineAction {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath,
+    [Parameter(Mandatory = $true)]
+    [string]$RoutineName,
+    [switch]$Approved
+  )
+
+  $pack = Get-BmoRoutinePack -WorkspacePath $WorkspacePath
+  $routine = @($pack.routines | Where-Object { $_.name -eq $RoutineName } | Select-Object -First 1)
+  if ($routine.Count -eq 0) {
+    throw "Unknown routine: $RoutineName"
+  }
+
+  return Start-BmoProcessTask -WorkspacePath $WorkspacePath -CommandText $routine[0].command `
+    -TaskType 'routine' -Title $routine[0].name -InitiatedBy 'operator' -Approved:$Approved
+}
+
+function Invoke-BmoRuntimeProfileAction {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath,
+    [Parameter(Mandatory = $true)]
+    [string]$ProfileId,
+    [switch]$Approved
+  )
+
+  $profile = @((Get-BmoRuntimeProfiles) | Where-Object { $_.id -eq $ProfileId } | Select-Object -First 1)
+  if ($profile.Count -eq 0) {
+    throw "Unknown runtime profile: $ProfileId"
+  }
+
+  $settings = Get-BmoSettings
+  $settings.preferredRuntimeProfile = $ProfileId
+  Save-BmoSettings -Settings $settings
+
+  return Start-BmoProcessTask -WorkspacePath $WorkspacePath -CommandText $profile[0].command `
+    -TaskType 'runtime-profile' -Title $profile[0].name -InitiatedBy 'operator' -Approved:$Approved
+}
+
+function Write-BmoTaskRecord {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Prompt,
+    [Parameter(Mandatory = $true)]
+    [string]$Reply,
+    [Parameter(Mandatory = $true)]
+    [string]$WorkspacePath,
+    [string]$Mode = 'chat'
+  )
+
+  $resolvedWorkspace = Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
+  $title = '{0}: {1}' -f $Mode, (Get-BmoTruncatedText -Text $Prompt -MaxLength 80).Replace("`r", ' ').Replace("`n", ' ')
+  $task = New-BmoTaskRecord -Title $title -TaskType $Mode -WorkspacePath $resolvedWorkspace -InitiatedBy 'agent'
+  $task.status = 'succeeded'
+  $task.startedAt = (Get-Date).ToString('o')
+  $task.completedAt = $task.startedAt
+  $task.prompt = $Prompt
+  $task.reply = $Reply
+  $task.outputPreview = Get-BmoTruncatedText -Text $Reply
+  Save-BmoTaskRecord -Task $task
 }
 
 function Invoke-BmoProviderReply {
@@ -369,7 +1648,7 @@ function Invoke-BmoProviderReply {
     messages = @(
       @{
         role = 'system'
-        content = 'You are BMO. Be concise, helpful, and safe on Windows.'
+        content = 'You are BMO. Be concise, practical, and honest about local workstation limits.'
       },
       @{
         role = 'user'
@@ -411,34 +1690,53 @@ function Get-BmoOfflineReply {
       $summary.gitStatus
     }
 
-    return "Workspace: $($summary.workspace)`r`nTop-level items: $items`r`nGit: $git"
+    $guidance = Get-BmoNextStepGuidance -WorkspacePath $WorkspacePath
+    return "Workspace: $($summary.workspace)`r`nTop-level items: $items`r`nGit: $git`r`n`r`nNext steps:`r`n$guidance"
   }
 
   if ($lower -match 'backlog') {
-    $backlogPath = Join-Path $WorkspacePath 'context\BACKLOG.md'
-    if (Test-Path $backlogPath) {
-      return (Get-Content -LiteralPath $backlogPath -Raw)
-    }
+    return Get-BmoDocumentContent -WorkspacePath $WorkspacePath -RelativePath 'context\BACKLOG.md'
   }
 
   if ($lower -match 'runbook|startup|recovery') {
-    $runbookPath = Join-Path $WorkspacePath 'context\RUNBOOK.md'
-    if (Test-Path $runbookPath) {
-      return (Get-Content -LiteralPath $runbookPath -Raw)
+    return Get-BmoDocumentContent -WorkspacePath $WorkspacePath -RelativePath 'context\RUNBOOK.md'
+  }
+
+  if ($lower -match 'skill') {
+    $skills = Get-BmoSkillCatalog -WorkspacePath $WorkspacePath
+    if ($skills.Count -eq 0) {
+      return 'No local skill catalog was found in this workspace.'
     }
+    $lines = @('Local skills:')
+    foreach ($skill in $skills) {
+      $lines += "- $($skill.name): $($skill.description)"
+    }
+    return $lines -join "`r`n"
+  }
+
+  if ($lower -match 'routine') {
+    $pack = Get-BmoRoutinePack -WorkspacePath $WorkspacePath
+    if ($pack.routines.Count -eq 0) {
+      return 'No routine pack was found in this workspace.'
+    }
+    $lines = @('BMO routines:')
+    foreach ($routine in $pack.routines) {
+      $lines += "- $($routine.name): $($routine.command)"
+    }
+    return $lines -join "`r`n"
   }
 
   return @"
-BMO Desktop is running in offline mode.
+BMO Desktop is running in local workstation mode.
 
-What I can do right now:
-- summarize the current workspace
-- show the backlog or runbook
-- run safe commands with `/cmd ...`
-- read a file with `/read relative\path.txt`
+What is real right now:
+- repo and worktree inspection
+- source control diff review
+- editable workspace files
+- supervised command, validation, and routine tasks
+- skills and routine discovery from repo manifests
 
-To enable richer chat replies, set `provider.mode` to `openai-compatible` in
-`config\appsettings.json` and add an endpoint, API key, and model.
+Use the Command Center tab for previewed command execution, the Tasks tab for logs and reruns, and the Source Control tab for diff review.
 "@
 }
 
@@ -450,29 +1748,40 @@ function Invoke-BmoAssistant {
     [string]$WorkspacePath
   )
 
+  $resolvedWorkspace = Resolve-BmoWorkspacePath -WorkspacePath $WorkspacePath
   $settings = Get-BmoSettings
   $trimmed = $Prompt.Trim()
 
   if ($trimmed.StartsWith('/cmd ')) {
     $command = $trimmed.Substring(5).Trim()
-    $result = Invoke-BmoCommand -WorkspacePath $WorkspacePath -CommandText $command
-    $reply = "[command] $($result.command)`r`n`r`n$($result.output)"
-    Write-BmoTaskRecord -Prompt $Prompt -Reply $reply -WorkspacePath $WorkspacePath -Mode 'command'
-    return $reply
+    $classification = Get-BmoCommandClassification -CommandText $command
+    if ($classification.decision -eq 'deny') {
+      return "Command blocked by policy.`r`nDecision: $($classification.decision)`r`nCapability: $($classification.capability)`r`nReason: $($classification.reason)"
+    }
+
+    if ($classification.requiresApproval) {
+      return "Command requires approval before it can run.`r`nDecision: $($classification.decision)`r`nCapability: $($classification.capability)`r`nReason: $($classification.reason)`r`n`r`nUse the Command Center tab or `/unsafe ...` to approve it intentionally."
+    }
+
+    $task = Start-BmoProcessTask -WorkspacePath $resolvedWorkspace -CommandText $command -TaskType 'command' -Title $command -InitiatedBy 'agent'
+    return "Started command task $($task.id). Open the Tasks tab to watch output, cancel, or rerun it."
   }
 
   if ($trimmed.StartsWith('/unsafe ')) {
     $command = $trimmed.Substring(8).Trim()
-    $result = Invoke-BmoCommand -WorkspacePath $WorkspacePath -CommandText $command -AllowUnsafe
-    $reply = "[unsafe command] $($result.command)`r`n`r`n$($result.output)"
-    Write-BmoTaskRecord -Prompt $Prompt -Reply $reply -WorkspacePath $WorkspacePath -Mode 'unsafe-command'
-    return $reply
+    $classification = Get-BmoCommandClassification -CommandText $command
+    if ($classification.decision -eq 'deny') {
+      return "Command is hard-blocked by policy and cannot run from `/unsafe`.`r`nReason: $($classification.reason)"
+    }
+
+    $task = Start-BmoProcessTask -WorkspacePath $resolvedWorkspace -CommandText $command -TaskType 'command' -Title $command -InitiatedBy 'agent' -Approved
+    return "Started approved command task $($task.id). The exact command, workspace, logs, and exit code are now tracked in Tasks."
   }
 
   if ($trimmed.StartsWith('/read ')) {
     $relativePath = $trimmed.Substring(6).Trim()
-    $reply = Read-BmoWorkspaceFile -WorkspacePath $WorkspacePath -RelativePath $relativePath
-    Write-BmoTaskRecord -Prompt $Prompt -Reply $reply -WorkspacePath $WorkspacePath -Mode 'read'
+    $reply = Read-BmoWorkspaceFile -WorkspacePath $resolvedWorkspace -RelativePath $relativePath
+    Write-BmoTaskRecord -Prompt $Prompt -Reply $reply -WorkspacePath $resolvedWorkspace -Mode 'read'
     return $reply
   }
 
@@ -480,6 +1789,7 @@ function Invoke-BmoAssistant {
     $summary = Get-BmoPolicySummary
     $reply = @"
 Default mode: $($summary.defaultMode)
+Safe execution mode: $($summary.safeExecutionMode)
 
 Exact safe commands:
 $($summary.exactSafeCommands -join "`r`n")
@@ -490,24 +1800,37 @@ $($summary.safePrefixes -join "`r`n")
 Blocked tokens:
 $($summary.blockedTokens -join "`r`n")
 "@
-    Write-BmoTaskRecord -Prompt $Prompt -Reply $reply -WorkspacePath $WorkspacePath -Mode 'policy'
+    Write-BmoTaskRecord -Prompt $Prompt -Reply $reply -WorkspacePath $resolvedWorkspace -Mode 'policy'
     return $reply
+  }
+
+  if ($trimmed -eq '/tasks') {
+    $tasks = Get-BmoTaskHistory -WorkspacePath $resolvedWorkspace -Limit 10
+    if ($tasks.Count -eq 0) {
+      return 'No recorded tasks yet for this workspace.'
+    }
+
+    $lines = @('Recent tasks:')
+    foreach ($task in $tasks) {
+      $lines += "- [$($task.status)] $($task.title)"
+    }
+    return $lines -join "`r`n"
   }
 
   try {
     $providerReply = Invoke-BmoProviderReply -Settings $settings -Prompt $trimmed
     if (-not [string]::IsNullOrWhiteSpace($providerReply)) {
       $reply = $providerReply.Trim()
-      Write-BmoTaskRecord -Prompt $Prompt -Reply $reply -WorkspacePath $WorkspacePath -Mode 'provider'
+      Write-BmoTaskRecord -Prompt $Prompt -Reply $reply -WorkspacePath $resolvedWorkspace -Mode 'provider'
       return $reply
     }
   } catch {
-    $reply = "Cloud provider failed, so I stayed local.`r`n`r`n$($_.Exception.Message)"
-    Write-BmoTaskRecord -Prompt $Prompt -Reply $reply -WorkspacePath $WorkspacePath -Mode 'provider-error'
+    $reply = "Cloud provider failed, so BMO stayed local.`r`n`r`n$($_.Exception.Message)"
+    Write-BmoTaskRecord -Prompt $Prompt -Reply $reply -WorkspacePath $resolvedWorkspace -Mode 'provider-error'
     return $reply
   }
 
-  $reply = Get-BmoOfflineReply -Prompt $trimmed -WorkspacePath $WorkspacePath
-  Write-BmoTaskRecord -Prompt $Prompt -Reply $reply -WorkspacePath $WorkspacePath -Mode 'offline'
+  $reply = Get-BmoOfflineReply -Prompt $trimmed -WorkspacePath $resolvedWorkspace
+  Write-BmoTaskRecord -Prompt $Prompt -Reply $reply -WorkspacePath $resolvedWorkspace -Mode 'offline'
   return $reply
 }

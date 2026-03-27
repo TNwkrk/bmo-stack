@@ -4,6 +4,7 @@ This directory holds user-facing applications built on top of `bmo-stack`.
 
 Current app workspaces:
 
-- `windows-desktop/` - planned Windows-native desktop shell that bundles the
-  BMO host runtime, worker broker, and local model runtime without requiring
-  WSL2 for end users.
+- `windows-desktop/` - active Windows-native BMO workstation app built around
+  a local WinForms shell, PowerShell broker, supervised task runner, repo and
+  worktree inspection, source control views, skills and routine discovery, and
+  installable packaging for per-user Windows deployment.
