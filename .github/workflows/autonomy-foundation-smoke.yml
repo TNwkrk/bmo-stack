@@ -22,10 +22,6 @@ jobs:
         with:
           python-version: '3.x'
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
       - name: Verify toolchain
         run: |
           jq --version
@@ -127,6 +123,15 @@ jobs:
           assert len(pack["local_routines"]) >= 3
           assert len(pack["community_shortlist"]) >= 3
           PY
+
+      - name: Validate GitHub automation contract
+        run: node scripts/validate-github-automation.mjs
+
+      - name: Validate council spawn manifest
+        run: node scripts/council-manifest.mjs validate
+
+      - name: Validate BMO routine pack
+        run: node scripts/bmo-routines.mjs validate
 
       - name: Apply BMO runtime profile
         run: python3 scripts/apply-bmo-runtime-profile.py dev --env-file workflows/test-bmo-runtime.env --output workflows/bmo-runtime-profile.json

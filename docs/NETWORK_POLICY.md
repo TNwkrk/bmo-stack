@@ -125,4 +125,5 @@ For unknown outbound hosts from a NemoClaw worker:
 - `scripts/skills-access-diagnosis.mjs`
 - `docs/SKILLS_INSTALL.md`
 - `docs/SKILLS_RECOMMENDED.md`
+- `scripts/skills-access-diagnosis.mjs`
 - `scripts/skills_access_diagnosis.py`

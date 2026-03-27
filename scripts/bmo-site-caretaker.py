@@ -11,6 +11,7 @@ DEFAULT_REPLICA_DIR = Path.home() / "prismtek-site-replica"
 DEFAULT_OUTPUT = Path("workflows") / "bmo-site-caretaker.json"
 DEFAULT_DISCOVERY_ROOT = Path.home()
 MAX_DISCOVERY_DEPTH = 4
+CHAT_SURFACE_TOKENS = ("chat", "assistant", "api", "worker", "function")
 
 
 def within_depth(base: Path, candidate: Path, max_depth: int) -> bool:
@@ -34,12 +35,14 @@ def discover_repo(root: Path, name: str) -> list[str]:
 def scan_site(root: Path) -> dict[str, object]:
     html_files = []
     asset_count = 0
+    chat_candidates = []
     if not root.exists():
         return {
             "path": str(root),
             "exists": False,
             "html_files": [],
             "asset_count": 0,
+            "chat_surface_candidates": [],
         }
 
     for path in root.rglob("*"):
@@ -50,12 +53,18 @@ def scan_site(root: Path) -> dict[str, object]:
                 html_files.append(rel)
             if suffix in {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".css", ".js"}:
                 asset_count += 1
+            lowered = rel.lower()
+            if suffix in {".html", ".htm", ".js", ".ts", ".tsx", ".jsx", ".json", ".md"} and any(
+                token in lowered for token in CHAT_SURFACE_TOKENS
+            ):
+                chat_candidates.append(rel)
 
     return {
         "path": str(root),
         "exists": True,
         "html_files": sorted(html_files),
         "asset_count": asset_count,
+        "chat_surface_candidates": sorted(set(chat_candidates)),
     }
 
 
@@ -66,10 +75,12 @@ def scan_replica(root: Path) -> dict[str, object]:
             "exists": False,
             "routes": [],
             "components": [],
+            "chat_surface_candidates": [],
         }
 
     routes = []
     components = []
+    chat_candidates = []
     for path in root.rglob("*"):
         if path.is_file() and path.suffix.lower() in {".tsx", ".ts", ".jsx", ".js"}:
             rel = path.relative_to(root).as_posix()
@@ -78,12 +89,15 @@ def scan_replica(root: Path) -> dict[str, object]:
                 routes.append(rel)
             if "component" in lowered or "/components/" in lowered:
                 components.append(rel)
+            if any(token in lowered for token in CHAT_SURFACE_TOKENS):
+                chat_candidates.append(rel)
 
     return {
         "path": str(root),
         "exists": True,
         "routes": sorted(set(routes)),
         "components": sorted(set(components)),
+        "chat_surface_candidates": sorted(set(chat_candidates)),
     }
 
 
@@ -128,6 +142,12 @@ def main() -> None:
             "replica_candidates": [] if replica["exists"] else discover_repo(discovery_root, "prismtek-site-replica"),
         },
         "migration_plan": build_plan(site, replica),
+        "chat_agent_handoff": {
+            "website_owner_repo": "prismtek-site",
+            "runtime_contract_repo": "bmo-stack",
+            "site_candidates": site.get("chat_surface_candidates", []),
+            "replica_candidates": replica.get("chat_surface_candidates", []),
+        },
     }
 
     if not site["exists"] and payload["discovery"]["site_candidates"]:

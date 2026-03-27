@@ -158,7 +158,7 @@ workspace-sync:
 	@python3 ./scripts/bmo-workspace-sync.py $(if $(ARGS),$(ARGS))
 
 site-caretaker:
-	@python3 ./scripts/bmo-site-caretaker.py $(if $(ARGS),$(ARGS))
+	@node ./scripts/bmo-site-caretaker.mjs $(if $(ARGS),$(ARGS))
 
 site-route-report:
 	@python3 ./scripts/prismtek_site_route_report.py

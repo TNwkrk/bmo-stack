@@ -48,6 +48,9 @@ set_vars() {
   gh variable set BMO_WORKSPACE_SYNC_ENABLED --repo "$REPO_FULL_NAME" --body "${BMO_WORKSPACE_SYNC_ENABLED:-false}"
   gh variable set BMO_OPENCLAW_HOST_WORKSPACE --repo "$REPO_FULL_NAME" --body "$BMO_OPENCLAW_HOST_WORKSPACE"
   gh variable set BMO_OPENCLAW_WORKER_WORKSPACE --repo "$REPO_FULL_NAME" --body "$BMO_OPENCLAW_WORKER_WORKSPACE"
+  if [ -n "${BMO_WORKSPACE_SYNC_RUNS_ON:-}" ]; then
+    gh variable set BMO_WORKSPACE_SYNC_RUNS_ON --repo "$REPO_FULL_NAME" --body "$BMO_WORKSPACE_SYNC_RUNS_ON"
+  fi
   if [ -n "${BMO_GITHUB_AUTONOMY_EXECUTOR:-}" ]; then
     gh variable set BMO_GITHUB_AUTONOMY_EXECUTOR --repo "$REPO_FULL_NAME" --body "$BMO_GITHUB_AUTONOMY_EXECUTOR"
   fi

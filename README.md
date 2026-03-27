@@ -147,6 +147,9 @@ The `context/` directory in this repo is a copy of your `~/bmo-context`.
 - The sandbox worker is managed by OpenShell on the host, not by Docker Compose. The compose file is for auxiliary services only.
 - The `vendor/nemoclaw` directory contains the NemoClaw/OpenShell submodule, which provides the worker sandbox framework. Do not modify this directory directly unless you intend to contribute back to the nemoclaw project.
 - Council agent definitions live in `context/council/` and are updated as the system evolves.
+- The machine-readable council spawn contract lives in `config/council/spawn-manifest.json`.
+- The machine-readable GitHub automation contract lives in `config/github/automation-contract.json`.
+- The machine-readable BMO routine pack lives in `config/routines/bmo-core-routines.json`.
 
 ## What Is Still Manual
 

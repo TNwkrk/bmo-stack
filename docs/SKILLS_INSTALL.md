@@ -71,6 +71,12 @@ Run:
 node scripts/skills-access-diagnosis.mjs
 ```
 
+Python fallback:
+
+```bash
+python3 scripts/skills_access_diagnosis.py
+```
+
 This reports:
 
 - repo, workspace, and global skill directories
@@ -80,12 +86,6 @@ This reports:
 - `openclaw skills list`
 - `openclaw skills list --eligible`
 - `openclaw skills check`
-
-Python fallback is still available if Node is not practical on the target host:
-
-```bash
-python3 scripts/skills_access_diagnosis.py
-```
 
 ## Source review before install
 

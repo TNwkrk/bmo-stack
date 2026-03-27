@@ -180,8 +180,10 @@ run_skills_access_diagnosis() {
         node "$ROOT_DIR/scripts/skills-access-diagnosis.mjs"
       elif command -v python3 >/dev/null 2>&1; then
         python3 "$ROOT_DIR/scripts/skills_access_diagnosis.py"
+      elif command -v python >/dev/null 2>&1; then
+        python "$ROOT_DIR/scripts/skills_access_diagnosis.py"
       else
-        echo "Error: skills-access-diagnosis requires either node or python3 on PATH" >&2
+        echo "Error: skills-access-diagnosis requires node, python3, or python" >&2
         exit 1
       fi
       ;;

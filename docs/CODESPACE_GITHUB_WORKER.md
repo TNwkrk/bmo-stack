@@ -20,8 +20,9 @@ Run this script inside a GitHub Codespace or another `gh`-authenticated shell to
 1. Copy `config/github/codespace-admin.env.example` to `config/github/codespace-admin.env`
 2. Fill in the workspace paths for your machine
 3. Optionally set `BMO_GITHUB_AUTONOMY_EXECUTOR` only if you still use the legacy self-hosted executor path
-4. Authenticate GitHub CLI with `gh auth login`
-5. Run:
+4. Optionally set `BMO_WORKSPACE_SYNC_RUNS_ON` if workspace sync should target specific self-hosted runner labels
+5. Authenticate GitHub CLI with `gh auth login`
+6. Run:
 
 ```bash
 bash scripts/codespace-github-admin.sh doctor
@@ -43,6 +44,7 @@ bash scripts/codespace-github-admin.sh bootstrap-low-risk-dry-run
 - The low-risk issue created by the bootstrap path is docs-only on purpose.
 - The current trigger label is `autonomy:execute`.
 - The current workflow target is `.github/workflows/issue-to-pr-v2.yml`, whose workflow name is `BMO Issue to PR v3`.
+- The optional workspace sync runner selector is `BMO_WORKSPACE_SYNC_RUNS_ON` and should be a JSON array such as `["self-hosted","bmo-workspace-sync"]`.
 
 ## Codespace Validation
 

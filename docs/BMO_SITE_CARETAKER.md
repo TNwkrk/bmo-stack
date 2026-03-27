@@ -9,13 +9,13 @@ Inventory the legacy `prismtek-site` donor and the `prismtek-site-replica` React
 Basic run:
 
 ```bash
-python3 scripts/bmo-site-caretaker.py
+node scripts/bmo-site-caretaker.mjs
 ```
 
 Explicit paths:
 
 ```bash
-python3 scripts/bmo-site-caretaker.py \
+node scripts/bmo-site-caretaker.mjs \
   --site-dir ~/prismtek-site \
   --replica-dir ~/prismtek-site-replica
 ```
@@ -23,7 +23,7 @@ python3 scripts/bmo-site-caretaker.py \
 If the default paths do not exist, the helper searches under the discovery root and reports candidate paths:
 
 ```bash
-python3 scripts/bmo-site-caretaker.py --discovery-root ~
+node scripts/bmo-site-caretaker.mjs --discovery-root ~
 ```
 
 You can also set:
@@ -40,3 +40,4 @@ Writes `workflows/bmo-site-caretaker.json` containing:
 - replica inventory
 - discovery candidates when paths are missing
 - route-level migration plan
+- chat/API candidate files in the site and replica repos

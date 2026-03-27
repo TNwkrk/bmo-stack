@@ -1,6 +1,6 @@
 {
   "site": "prismtek.dev",
-  "lastReviewed": "2026-03-25",
+  "lastReviewed": "2026-03-26",
   "discoverySource": {
     "live_homepage": "navigation + homepage sections",
     "donor_repo": "prismtek-site"
@@ -13,6 +13,7 @@
     {"route": "/memory-wall/", "label": "Memory Wall", "status": "todo", "priority": "P2", "type": "community"},
     {"route": "/prism-creatures/", "label": "Prism Creatures", "status": "todo", "priority": "P1", "type": "feature"},
     {"route": "/my-account/", "label": "My Account", "status": "todo", "priority": "P1", "type": "account"},
+    {"route": "/mission-control/", "label": "Mission Control", "status": "blocked", "priority": "P1", "type": "chat"},
     {"route": "/school-safe/", "label": "School Safe", "status": "todo", "priority": "P2", "type": "policy"},
     {"route": "/projects/", "label": "Projects", "status": "todo", "priority": "P0", "type": "content"},
     {"route": "/downloads/", "label": "Downloads", "status": "todo", "priority": "P0", "type": "content"},

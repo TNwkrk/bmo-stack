@@ -23,7 +23,7 @@ concurrency:
 jobs:
   sync:
     if: vars.BMO_WORKSPACE_SYNC_ENABLED == 'true'
-    runs-on: self-hosted
+    runs-on: ${{ fromJSON(vars.BMO_WORKSPACE_SYNC_RUNS_ON != '' && vars.BMO_WORKSPACE_SYNC_RUNS_ON || '["self-hosted"]') }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

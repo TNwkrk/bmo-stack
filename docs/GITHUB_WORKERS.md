@@ -61,5 +61,12 @@ See `docs/COSMIC_OWL_REPORT_SAMPLE.md`.
 
 ## Real vs simulated
 
-- **Real:** Cosmic Owl GitHub workflow, Moe GitHub workflow, worker naming registry, council definitions.
+- **Real:** Cosmic Owl GitHub workflow, Moe GitHub workflow, the GitHub automation contract, the council spawn manifest, and the worker naming registry.
 - **Simulated/policy:** broader council orchestration still depends on BMO/Prismo following documented routing rules unless backed by additional automation.
+
+## Source-of-truth files
+
+- `config/github/automation-contract.json`
+- `config/council/spawn-manifest.json`
+- `context/WORKER_NAMING_REGISTRY.md`
+- `context/council/README_CANONICAL.md`
