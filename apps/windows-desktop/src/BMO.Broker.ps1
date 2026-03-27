@@ -972,7 +972,7 @@ function Get-BmoRepoInfo {
     }
   }
 
-  $changes = Get-BmoRepoChanges -WorkspacePath $resolvedWorkspace
+  $changes = @(Get-BmoRepoChanges -WorkspacePath $resolvedWorkspace)
   $stagedCount = (@($changes | Where-Object { -not [string]::IsNullOrWhiteSpace($_.stagedStatus) })).Count
   $unstagedCount = (@($changes | Where-Object { -not [string]::IsNullOrWhiteSpace($_.worktreeStatus) })).Count
   $untrackedCount = (@($changes | Where-Object { $_.isUntracked })).Count
@@ -983,14 +983,14 @@ function Get-BmoRepoInfo {
   $result.remoteBranch = $remoteBranch
   $result.ahead = $ahead
   $result.behind = $behind
-  $result.changedFiles = $changes
+  $result.changedFiles = @($changes)
   $result.stagedCount = $stagedCount
   $result.unstagedCount = $unstagedCount
   $result.untrackedCount = $untrackedCount
-  $result.dirty = ($changes.Count -gt 0)
+  $result.dirty = (@($changes).Count -gt 0)
   $result.statusHeader = $statusHeader
   $result.statusText = $statusText
-  $result.worktrees = Get-BmoWorktrees -WorkspacePath $resolvedWorkspace
+  $result.worktrees = @(Get-BmoWorktrees -WorkspacePath $resolvedWorkspace)
 
   return [pscustomobject]$result
 }
