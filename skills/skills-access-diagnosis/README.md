@@ -16,7 +16,7 @@ Diagnose why an agent cannot see or use installed skills, especially when `clawh
 Run:
 
 ```bash
-python3 scripts/skills_access_diagnosis.py
+node scripts/skills-access-diagnosis.mjs
 ```
 
 This checks:
@@ -26,6 +26,12 @@ This checks:
 - `openclaw skills list --eligible`
 - `openclaw skills check`
 - `clawhub --help`
+
+Or run it through the skill runner:
+
+```bash
+bash scripts/skill.sh run skills-access-diagnosis run
+```
 
 ## Operator guidance
 
@@ -42,10 +48,10 @@ openclaw skills check
 ```
 
 3. Avoid wedging the shell with a broad update if one skill is hanging.
-   Install a single skill instead:
+   Install a single skill instead, and stop it if it stalls for roughly 30 seconds:
 
 ```bash
-timeout 30 clawhub install <skill-slug>
+clawhub install <skill-slug>
 ```
 
 4. After a successful install, start a fresh agent session so the updated skill snapshot is picked up.
@@ -64,6 +70,7 @@ If `clawhub update` hangs while trying to install Google Workspace (`gog`):
 
 ## Related
 
-- `scripts/skills_access_diagnosis.py`
+- `scripts/skills-access-diagnosis.mjs`
+- `scripts/skills_access_diagnosis.py` (legacy Python fallback)
 - `scripts/skill.sh`
 - `scripts/skill-auto.sh`
