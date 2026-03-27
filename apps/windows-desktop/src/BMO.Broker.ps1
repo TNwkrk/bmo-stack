@@ -858,7 +858,7 @@ function Get-BmoRepoChanges {
     }
   }
 
-  return $changes
+  return @($changes)
 }
 
 function Get-BmoWorktrees {
@@ -913,7 +913,7 @@ function Get-BmoWorktrees {
     }
   }
 
-  return $worktrees
+  return @($worktrees)
 }
 
 function Get-BmoRepoInfo {
