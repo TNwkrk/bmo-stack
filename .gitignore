@@ -1,0 +1,4 @@
+*.code-workspace
+context/continuity/live-status.json
+workflows/bmo-continuity.json
+workflows/bmo-workspace-sync.json

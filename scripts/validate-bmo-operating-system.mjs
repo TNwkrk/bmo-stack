@@ -41,9 +41,11 @@ const requiredFiles = [
   "routines.md",
   "RESPONSE_GUIDE.md",
   "HEARTBEAT.md",
+  "scripts/bmo-continuity-report.mjs",
   "scripts/configure-openclaw-agents.sh",
   "scripts/sync-openclaw-workspaces.sh",
   "context/BOOTSTRAP.md",
+  "context/continuity/README.md",
   "context/identity/AGENTS.md",
   "context/identity/SOUL.md",
   "context/identity/USER.md",
@@ -124,7 +126,13 @@ for (const token of [
 }
 
 const sessionState = read("context/SESSION_STATE.md");
-for (const token of ["`AGENTS.md`", "`context/RUNBOOK.md`", "`TASK_STATE.md`", "`WORK_IN_PROGRESS.md`"]) {
+for (const token of [
+  "`AGENTS.md`",
+  "`context/RUNBOOK.md`",
+  "`context/continuity/live-status.json`",
+  "`TASK_STATE.md`",
+  "`WORK_IN_PROGRESS.md`",
+]) {
   if (!sessionState.includes(token)) fail(`context/SESSION_STATE.md must mention ${token}`);
 }
 

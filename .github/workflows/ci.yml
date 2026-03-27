@@ -84,3 +84,6 @@ jobs:
 
       - name: Validate BMO operating system files
         run: node scripts/validate-bmo-operating-system.mjs
+
+      - name: Validate continuity reporter
+        run: node scripts/bmo-continuity-report.mjs --surface repo --site-runtime-url "" --output workflows/bmo-continuity.json

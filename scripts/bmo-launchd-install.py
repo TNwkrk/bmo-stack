@@ -23,6 +23,11 @@ def build_plist(
     repo_url: str,
     workspace_dir: str,
     host_context_dir: str,
+    continuity_surface: str,
+    continuity_output: str,
+    continuity_publish: str,
+    continuity_url: str,
+    continuity_token: str,
 ) -> dict[str, object]:
     return {
         "Label": label,
@@ -35,6 +40,11 @@ def build_plist(
             "BMO_STACK_REPO_URL": repo_url,
             "BMO_OPENCLAW_WORKSPACE_DIR": workspace_dir,
             "BMO_HOST_CONTEXT_DIR": host_context_dir,
+            "BMO_CONTINUITY_SURFACE": continuity_surface,
+            "BMO_CONTINUITY_OUTPUT": continuity_output,
+            "BMO_CONTINUITY_PUBLISH": continuity_publish,
+            "PRISMTEK_CONTINUITY_URL": continuity_url,
+            "PRISMTEK_CONTINUITY_TOKEN": continuity_token,
         },
     }
 
@@ -49,6 +59,11 @@ def main() -> None:
     parser.add_argument("--repo-url", default=os.environ.get("BMO_STACK_REPO_URL", DEFAULT_REPO_URL))
     parser.add_argument("--workspace-dir", default=os.environ.get("BMO_OPENCLAW_WORKSPACE_DIR", str(DEFAULT_WORKSPACE)))
     parser.add_argument("--host-context", default=os.environ.get("BMO_HOST_CONTEXT_DIR", str(DEFAULT_HOST_CONTEXT)))
+    parser.add_argument("--continuity-surface", default=os.environ.get("BMO_CONTINUITY_SURFACE", "macbook"))
+    parser.add_argument("--continuity-output", default=os.environ.get("BMO_CONTINUITY_OUTPUT", "workflows/bmo-continuity.json"))
+    parser.add_argument("--continuity-publish", default=os.environ.get("BMO_CONTINUITY_PUBLISH", "false"))
+    parser.add_argument("--continuity-url", default=os.environ.get("PRISMTEK_CONTINUITY_URL", ""))
+    parser.add_argument("--continuity-token", default=os.environ.get("PRISMTEK_CONTINUITY_TOKEN", ""))
     parser.add_argument("--output", default="workflows/bmo-launchd-install.json")
     args = parser.parse_args()
 
@@ -63,6 +78,11 @@ def main() -> None:
         args.repo_url,
         str(Path(args.workspace_dir).expanduser()),
         str(Path(args.host_context).expanduser()),
+        args.continuity_surface,
+        args.continuity_output,
+        args.continuity_publish,
+        args.continuity_url,
+        args.continuity_token,
     )
     with plist_path.open("wb") as fh:
         plistlib.dump(payload, fh)
@@ -75,6 +95,11 @@ def main() -> None:
         "workspace_dir": payload["EnvironmentVariables"]["BMO_OPENCLAW_WORKSPACE_DIR"],
         "host_context": payload["EnvironmentVariables"]["BMO_HOST_CONTEXT_DIR"],
         "repo_url": payload["EnvironmentVariables"]["BMO_STACK_REPO_URL"],
+        "continuity_surface": payload["EnvironmentVariables"]["BMO_CONTINUITY_SURFACE"],
+        "continuity_output": payload["EnvironmentVariables"]["BMO_CONTINUITY_OUTPUT"],
+        "continuity_publish": payload["EnvironmentVariables"]["BMO_CONTINUITY_PUBLISH"],
+        "continuity_url_configured": bool(payload["EnvironmentVariables"]["PRISMTEK_CONTINUITY_URL"]),
+        "continuity_token_configured": bool(payload["EnvironmentVariables"]["PRISMTEK_CONTINUITY_TOKEN"]),
         "launchctl_bootstrap": f"launchctl bootstrap gui/$(id -u) {plist_path}",
         "launchctl_kickstart": f"launchctl kickstart -k gui/$(id -u)/{args.label}",
         "launchctl_enable": f"launchctl enable gui/$(id -u)/{args.label}",
