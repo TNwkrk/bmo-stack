@@ -23,6 +23,7 @@ def build_plist(
     repo_url: str,
     workspace_dir: str,
     host_context_dir: str,
+    sync_output: str,
     continuity_surface: str,
     continuity_output: str,
     continuity_publish: str,
@@ -40,6 +41,7 @@ def build_plist(
             "BMO_STACK_REPO_URL": repo_url,
             "BMO_OPENCLAW_WORKSPACE_DIR": workspace_dir,
             "BMO_HOST_CONTEXT_DIR": host_context_dir,
+            "BMO_WORKSPACE_SYNC_OUTPUT": sync_output,
             "BMO_CONTINUITY_SURFACE": continuity_surface,
             "BMO_CONTINUITY_OUTPUT": continuity_output,
             "BMO_CONTINUITY_PUBLISH": continuity_publish,
@@ -59,6 +61,10 @@ def main() -> None:
     parser.add_argument("--repo-url", default=os.environ.get("BMO_STACK_REPO_URL", DEFAULT_REPO_URL))
     parser.add_argument("--workspace-dir", default=os.environ.get("BMO_OPENCLAW_WORKSPACE_DIR", str(DEFAULT_WORKSPACE)))
     parser.add_argument("--host-context", default=os.environ.get("BMO_HOST_CONTEXT_DIR", str(DEFAULT_HOST_CONTEXT)))
+    parser.add_argument(
+        "--sync-output",
+        default=os.environ.get("BMO_WORKSPACE_SYNC_OUTPUT", "workflows/bmo-workspace-sync.json"),
+    )
     parser.add_argument("--continuity-surface", default=os.environ.get("BMO_CONTINUITY_SURFACE", "macbook"))
     parser.add_argument("--continuity-output", default=os.environ.get("BMO_CONTINUITY_OUTPUT", "workflows/bmo-continuity.json"))
     parser.add_argument("--continuity-publish", default=os.environ.get("BMO_CONTINUITY_PUBLISH", "false"))
@@ -78,6 +84,7 @@ def main() -> None:
         args.repo_url,
         str(Path(args.workspace_dir).expanduser()),
         str(Path(args.host_context).expanduser()),
+        args.sync_output,
         args.continuity_surface,
         args.continuity_output,
         args.continuity_publish,
@@ -95,6 +102,7 @@ def main() -> None:
         "workspace_dir": payload["EnvironmentVariables"]["BMO_OPENCLAW_WORKSPACE_DIR"],
         "host_context": payload["EnvironmentVariables"]["BMO_HOST_CONTEXT_DIR"],
         "repo_url": payload["EnvironmentVariables"]["BMO_STACK_REPO_URL"],
+        "sync_output": payload["EnvironmentVariables"]["BMO_WORKSPACE_SYNC_OUTPUT"],
         "continuity_surface": payload["EnvironmentVariables"]["BMO_CONTINUITY_SURFACE"],
         "continuity_output": payload["EnvironmentVariables"]["BMO_CONTINUITY_OUTPUT"],
         "continuity_publish": payload["EnvironmentVariables"]["BMO_CONTINUITY_PUBLISH"],

@@ -50,7 +50,7 @@ If you want the MacBook workspace mirror to stay current automatically:
 export BMO_CONTINUITY_SURFACE=macbook
 export BMO_CONTINUITY_PUBLISH=true
 export PRISMTEK_CONTINUITY_URL="https://prismtek.dev/wp-json/prismtek/v1/continuity"
-export PRISMTEK_CONTINUITY_TOKEN="replace-me"
+export PRISMTEK_CONTINUITY_TOKEN="replace-me-with-the-real-token"
 make launchd-install
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/cloud.codysumpter.bmo-workspace-sync.plist
 launchctl kickstart -k gui/$(id -u)/cloud.codysumpter.bmo-workspace-sync
@@ -58,6 +58,7 @@ launchctl kickstart -k gui/$(id -u)/cloud.codysumpter.bmo-workspace-sync
 
 That LaunchAgent runs `scripts/bmo-workspace-sync.py` at login and every 5 minutes by default, keeping `~/.openclaw/workspace/bmo-stack` aligned with the repo and syncing repo context into `~/bmo-context`.
 When the continuity URL and token are set, it also publishes the current MacBook/runtime snapshot to the site-wide continuity feed and mirrors the latest snapshot into `context/continuity/live-status.json` for the OpenClaw workspace.
+Use a real continuity token value here. Do not paste the placeholder string into your shell, or publish will fail with `Continuity write token is missing or invalid.`
 
 From `openclaw`, update the live runtime code:
 

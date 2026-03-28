@@ -12,6 +12,7 @@ DEFAULT_REPO_URL = "https://github.com/codysumpter-cloud/bmo-stack.git"
 DEFAULT_WORKSPACE = Path.home() / ".openclaw" / "workspace" / "bmo-stack"
 DEFAULT_CONTEXT_HOST = Path.home() / "bmo-context"
 DEFAULT_CONTINUITY_OUTPUT = Path("workflows") / "bmo-continuity.json"
+DEFAULT_SYNC_OUTPUT = Path("workflows") / "bmo-workspace-sync.json"
 DEFAULT_CONTEXT_EXCLUDES = [
     "TASK_STATE.md",
     "WORK_IN_PROGRESS.md",
@@ -91,6 +92,13 @@ def mirror_continuity_snapshot(repo_root: Path, output_path: Path) -> list[dict[
     return steps
 
 
+def resolve_workspace_path(workspace_dir: Path, value: str) -> Path:
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        path = workspace_dir / path
+    return path
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keep the local OpenClaw workspace aligned with bmo-stack.")
     parser.add_argument("--repo-url", default=os.environ.get("BMO_STACK_REPO_URL", DEFAULT_REPO_URL))
@@ -98,7 +106,10 @@ def main() -> None:
     parser.add_argument("--host-context", default=os.environ.get("BMO_HOST_CONTEXT_DIR", str(DEFAULT_CONTEXT_HOST)))
     parser.add_argument("--delete-context", action="store_true", help="Delete files from host context that are absent in repo context.")
     parser.add_argument("--exclude", action="append", default=[], help="Additional rsync exclude patterns for context sync.")
-    parser.add_argument("--output", default="workflows/bmo-workspace-sync.json")
+    parser.add_argument(
+        "--output",
+        default=os.environ.get("BMO_WORKSPACE_SYNC_OUTPUT", str(DEFAULT_SYNC_OUTPUT)),
+    )
     parser.add_argument("--continuity-surface", default=os.environ.get("BMO_CONTINUITY_SURFACE", "macbook"))
     parser.add_argument(
         "--continuity-output",
@@ -113,9 +124,8 @@ def main() -> None:
 
     workspace_dir = Path(args.workspace_dir).expanduser()
     host_context = Path(args.host_context).expanduser()
-    continuity_output = Path(args.continuity_output)
-    if not continuity_output.is_absolute():
-        continuity_output = workspace_dir / continuity_output
+    continuity_output = resolve_workspace_path(workspace_dir, args.continuity_output)
+    output = resolve_workspace_path(workspace_dir, args.output)
     excludes = DEFAULT_CONTEXT_EXCLUDES + list(args.exclude)
 
     payload = {
@@ -127,6 +137,7 @@ def main() -> None:
         "continuity_surface": args.continuity_surface,
         "continuity_output": str(continuity_output),
         "publish_continuity": args.publish_continuity,
+        "output": str(output),
         "steps": [],
     }
     payload["steps"].extend(ensure_repo(workspace_dir, args.repo_url))
@@ -136,7 +147,6 @@ def main() -> None:
     payload["steps"].extend(mirror_continuity_snapshot(workspace_dir, continuity_output))
     payload["steps"].extend(sync_context(workspace_dir, host_context, args.delete_context, excludes))
 
-    output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(payload, indent=2))

@@ -200,4 +200,21 @@ for (const file of ["scripts/configure-openclaw-agents.sh", "scripts/sync-opencl
   }
 }
 
+const workspaceSync = read("scripts/bmo-workspace-sync.py");
+for (const token of ["BMO_WORKSPACE_SYNC_OUTPUT", "resolve_workspace_path", "workspace_dir / path"]) {
+  if (!workspaceSync.includes(token)) {
+    fail(`scripts/bmo-workspace-sync.py must resolve launchd output paths relative to the workspace: missing ${token}`);
+  }
+}
+
+const launchdInstall = read("scripts/bmo-launchd-install.py");
+if (!launchdInstall.includes("BMO_WORKSPACE_SYNC_OUTPUT")) {
+  fail("scripts/bmo-launchd-install.py must export BMO_WORKSPACE_SYNC_OUTPUT for launchd installs");
+}
+
+const macbookDoc = read("docs/BMO_ON_MY_MACBOOK.md");
+if (!macbookDoc.includes("Do not paste the placeholder string")) {
+  fail("docs/BMO_ON_MY_MACBOOK.md must warn against pasting the placeholder continuity token");
+}
+
 console.log("bmo operating system files are valid");
