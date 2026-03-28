@@ -4,7 +4,6 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..");
-const today = new Date().toISOString().slice(0, 10);
 
 function fail(message) {
   console.error(`ERROR: ${message}`);
@@ -59,13 +58,27 @@ const requiredFiles = [
   "context/donors/BMO_FEATURE_CARRYOVER.md",
   "docs/BMO_ROUTINES.md",
   "config/routines/bmo-core-routines.json",
-  `memory/${today}.md`,
   "TASK_STATE.md",
   "WORK_IN_PROGRESS.md",
 ];
 
 for (const file of requiredFiles) {
   read(file);
+}
+
+const dailyMemoryNotes = fs
+  .readdirSync(path.join(root, "memory"), { withFileTypes: true })
+  .filter((entry) => entry.isFile() && /^\d{4}-\d{2}-\d{2}\.md$/.test(entry.name))
+  .map((entry) => entry.name)
+  .sort();
+
+for (const noteName of dailyMemoryNotes) {
+  const relativePath = `memory/${noteName}`;
+  const expectedHeading = `# ${noteName.replace(/\.md$/, "")}`;
+  const note = read(relativePath);
+  if (!note.includes(expectedHeading)) {
+    fail(`${relativePath} must include heading: ${expectedHeading}`);
+  }
 }
 
 const startupSequence = [
