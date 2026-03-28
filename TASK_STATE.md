@@ -1,18 +1,17 @@
 # Task State
 
-Last updated: 2026-03-27 11:52 UTC
+Last updated: 2026-03-28 13:29 UTC
 
 ## Current status
 
-- Description: Turn the Windows desktop app into a real BMO workstation shell with repo/worktree awareness, supervised tasks, policy-aware command execution, routines and skills, and usable source-control and validation flows.
+- Description: Restore green CI on `master` after the BMO operating-system validator started failing on date-sensitive daily memory enforcement.
 - Active repo: `C:\Users\cody_\Git\bmo-stack`
 - Branch: `master`
-- Last successful step: rewired the Windows app into a multi-pane workstation shell, added supervised task execution and policy previews, wired routines/skills/validation manifests, added a smoke-test path, and rebuilt the portable bundle successfully.
-- Next intended step: review the UI interactively on Windows, decide the next implementation slice for editor/navigation depth, and package any follow-up hardening on a review branch.
-- Verification complete: true
+- Last successful step: identified the failing GitHub Actions run on `master`, patched `scripts/validate-bmo-operating-system.mjs`, and validated the same repo-contract checks the `ci` workflow runs.
+- Next intended step: publish the fix to remote and confirm the rerun on `master` returns to green.
+- Verification complete: false
 - Manual steps remaining:
-  - run the full workstation UI interactively on a Windows desktop session
-  - decide whether the next slice should prioritize deeper editor features, richer worktree isolation, or debugger integration
+  - publish the fix to remote and confirm the workflow reruns cleanly
 - Safe to resume: true
 
 ## Recent checkpoints
@@ -45,4 +44,14 @@ Last updated: 2026-03-27 11:52 UTC
   - Next intended step: perform interactive Windows UI review and choose the next workstation-hardening slice
   - Verification complete: true
   - Manual steps remaining: interactive UI review and follow-up prioritization
+  - Safe to resume: true
+
+- 2026-03-28 13:29 UTC
+  - Repo: `C:\Users\cody_\Git\bmo-stack`
+  - Branch: `master`
+  - Files touched: `scripts/validate-bmo-operating-system.mjs`, `memory/2026-03-28.md`, `TASK_STATE.md`, `WORK_IN_PROGRESS.md`
+  - Last successful step: isolated the red `ci` check on `master`, patched the date-sensitive validator bug, and validated the same repo-contract checks locally
+  - Next intended step: commit, push, and confirm the remote rerun goes green
+  - Verification complete: false
+  - Manual steps remaining: commit/push and remote workflow confirmation
   - Safe to resume: true
