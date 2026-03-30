@@ -1,5 +1,6 @@
 # Mission Control Enhancement Skill
 
+## Purpose
 This skill enhances the BMO mission control with additional panels for monitoring agent heartbeats, local model token usage, and skill execution logs.
 
 ## Problem

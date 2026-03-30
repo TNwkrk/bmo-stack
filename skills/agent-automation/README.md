@@ -1,5 +1,6 @@
 # Agent Automation Skill
 
+## Purpose
 This skill provides tools for automating routine agent council meetings and task executions.
 
 ## Problem
