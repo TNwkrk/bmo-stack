@@ -34,3 +34,15 @@ python3 skills/video-review/scripts/review_video.py --url "<video-url-or-file>" 
 - Requires `yt-dlp` + `ffmpeg` in PATH.
 - Uses `whisper` CLI if available for local transcription.
 - If transcript is unavailable, still provide visual/keyframe-based observations and clearly say transcription was unavailable.
+
+## Smoke Test
+Verify end-to-end function:
+```bash
+python3 skills/video-review/scripts/review_video.py \
+  --url "https://www.youtube.com/watch?v=jNQXAC9IVRw" \
+  --out-dir "./test-output" \
+  --sample-seconds 5
+# Expect: test-output/*/REVIEW.md with content summary, transcript.txt, frames/
+```
+Dependencies: yt-dlp, ffmpeg, whisper CLI
+
