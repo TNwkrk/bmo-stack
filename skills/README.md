@@ -42,6 +42,11 @@ A skill is not meant to replace canonical repo docs.
 It is meant to make a focused workflow easier to execute correctly.
 
 ## Current skill set
+  - `agent-automation/`
+    - Agent automation routines for scheduled council meetings and maintenance tasks
+  - `mission-control-enhancement/`
+    - Enhanced mission control with agent heartbeats, local token usage, and skill execution logs
+
 
 - `openclaw-agent-split/`
   - host-facing `main` plus sandboxed `bmo-tron` worker topology
