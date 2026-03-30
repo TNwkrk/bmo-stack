@@ -22,7 +22,7 @@ mkdir -p "$output_dir"
 if [[ "$input" =~ ^(https?://)?(www\.)?(youtube\.com|youtu\.be)/ ]]; then
   echo "Detected YouTube URL, using yt-dlp to get metadata and download if needed."
   # We'll just get metadata for now; the actual download can be handled by the video-review skill.
-  yt-dlp --no-download --print-json "$input" > "$output_dir/metadata.json" 2>/dev/null || {
+  yt-dlp --no-download --print-json "$input" >"$output_dir/metadata.json" 2>/dev/null || {
     echo "Failed to get metadata for YouTube URL" >&2
     exit 1
   }
