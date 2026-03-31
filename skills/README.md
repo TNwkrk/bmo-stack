@@ -48,6 +48,8 @@ It is meant to make a focused workflow easier to execute correctly.
     - Enhanced mission control with agent heartbeats, local token usage, and skill execution logs
   - `claw-code-harness/`
     - repo-local wrapper around community `claw-code` manifest, command inventory, and tool inventory
+  - `omx-nim-coding/`
+    - Mission Control-facing OMX + Codex CLI + claw-code dispatch path using NVIDIA NIM free endpoints
 
 - `openclaw-agent-split/`
   - host-facing `main` plus sandboxed `bmo-tron` worker topology
