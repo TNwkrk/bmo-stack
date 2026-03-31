@@ -178,6 +178,22 @@
         "command inventory"
       ],
       "default_action": "summary"
+    },
+    "omx-nim-coding": {
+      "actions": [
+        "doctor",
+        "codex",
+        "claw",
+        "dispatch"
+      ],
+      "triggers": [
+        "omx nim",
+        "nvidia nim",
+        "codex nim",
+        "mission control nim",
+        "free coding model"
+      ],
+      "default_action": "dispatch"
     }
   }
 }
