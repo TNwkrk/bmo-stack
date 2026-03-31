@@ -25,9 +25,18 @@ shift
 
 case "$cmd" in
   doctor)
-    command -v codex >/dev/null 2>&1 || { echo "codex not found" >&2; exit 1; }
-    command -v omx >/dev/null 2>&1 || { echo "omx not found" >&2; exit 1; }
-    [[ -n "${NIM_API_KEY:-${NVIDIA_API_KEY:-}}" ]] || { echo "NIM/NVIDIA API key missing" >&2; exit 1; }
+    command -v codex >/dev/null 2>&1 || {
+      echo "codex not found" >&2
+      exit 1
+    }
+    command -v omx >/dev/null 2>&1 || {
+      echo "omx not found" >&2
+      exit 1
+    }
+    [[ -n "${NIM_API_KEY:-${NVIDIA_API_KEY:-}}" ]] || {
+      echo "NIM/NVIDIA API key missing" >&2
+      exit 1
+    }
     echo "Mission Control NIM surface looks ready."
     ;;
   codex)
