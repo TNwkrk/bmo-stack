@@ -1,20 +1,42 @@
 # Task State
 
-Last updated: 2026-03-28 13:36 UTC
+Last updated: 2026-04-02 13:39 UTC
 
 ## Current status
 
-- Description: Close out the date-sensitive BMO validator repair after merge and confirm `master` is green again.
-- Active repo: `C:\Users\cody_\Git\bmo-stack`
-- Branch: `master`
-- Last successful step: merged PR `#123` so commit `c39036c8ad66d0071ff80af477c2aa2dc91169b3` landed on `master`, then verified the follow-up `ci`, `codeql`, and `Publish continuity` runs completed successfully.
-- Next intended step: return to the next unfinished operator task from the backlog when a new request arrives.
+- Description: Port and adapt runtime self-upgrade system from prismtek-site into bmo-stack with safe verification, sync helpers, and rollback docs.
+- Active repo: `/workspace/bmo-stack`
+- Branch: `feat/runtime-self-upgrade-hardening`
+- Last successful step: executed verification commands, appended runtime results, committed changes (`aff308e`), and prepared PR draft via make_pr tool.
+- Next intended step: push branch and open PR once remote/auth is available.
 - Verification complete: true
 - Manual steps remaining:
-  - none for the CI repair
+  - `git remote add origin <repo_url>` (if missing)
+  - `git push -u origin feat/runtime-self-upgrade-hardening`
+  - open PR with prepared title/body
 - Safe to resume: true
 
 ## Recent checkpoints
+
+- 2026-04-02 13:39 UTC
+  - Repo: `/workspace/bmo-stack`
+  - Branch: `feat/runtime-self-upgrade-hardening`
+  - Files touched: runtime upgrade policy/settings/agents/scripts/docs plus README and checkpoint files
+  - Last successful step: verification passed and commit `aff308e` created
+  - Next intended step: push branch and open PR when remote/auth is available
+  - Verification complete: true
+  - Manual steps remaining: remote wiring + PR publish
+  - Safe to resume: true
+
+- 2026-04-02 13:37 UTC
+  - Repo: `/workspace/bmo-stack`
+  - Branch: `feat/runtime-self-upgrade-hardening`
+  - Files touched: `CLAUDE.md`, `.claude/**`, `scripts/agent-post-edit-checks.sh`, `scripts/persist-runtime-report.sh`, `scripts/sync-upgrade-artifacts.sh`, `scripts/sync-and-pr-bmo-stack.sh`, `docs/upgrade-plan.md`, `docs/upgrade-results.md`, `docs/rollback.md`, `docs/MISSION_CONTROL_BMO_STACK_SYNC.md`, `README.md`
+  - Last successful step: implemented runtime self-upgrade policy and automation scaffolding
+  - Next intended step: run verification and finalize PR artifacts
+  - Verification complete: false
+  - Manual steps remaining: verification + commit + PR
+  - Safe to resume: true
 
 - 2026-03-27 10:19 UTC
   - Repo: `C:\Users\cody_\Git\bmo-stack`

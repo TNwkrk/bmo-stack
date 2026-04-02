@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json.schemastore.org/partial-composer.json",
+  "security": {
+    "readDenylist": [
+      ".env",
+      ".env.*",
+      "**/.env",
+      "**/.env.*",
+      "secrets/**",
+      "**/*secret*",
+      "**/*credential*",
+      "**/*.pem",
+      "**/*.key",
+      "**/id_rsa",
+      "**/id_ed25519"
+    ]
+  },
+  "hooks": {
+    "postEdit": [
+      {
+        "name": "agent-post-edit-checks",
+        "command": "bash scripts/agent-post-edit-checks.sh"
+      }
+    ],
+    "sessionEnd": [
+      {
+        "name": "persist-runtime-report",
+        "command": "bash scripts/persist-runtime-report.sh"
+      }
+    ]
+  },
+  "runtimeUpgrade": {
+    "preferredWorkers": [
+      "runtime-upgrader",
+      "runtime-verifier"
+    ]
+  }
+}

@@ -131,3 +131,23 @@ The biggest remaining unfinished surfaces are:
 - public-web chat ownership in `prismtek-site`
 - deeper live runtime validation against `openclaw`
 - ongoing drift control between docs, scripts, and runtime behavior
+
+## Runtime Self-Upgrade Workflow
+
+Operator-facing runtime upgrade artifacts:
+
+- `CLAUDE.md` (Agent Upgrade Policy)
+- `.claude/settings.json` (secret-read denylist + post-edit/session hooks)
+- `.claude/agents/runtime-upgrader.md`
+- `.claude/agents/runtime-verifier.md`
+- `docs/upgrade-plan.md`
+- `docs/upgrade-results.md`
+- `docs/rollback.md`
+- `docs/MISSION_CONTROL_BMO_STACK_SYNC.md`
+
+Key scripts:
+
+- `bash scripts/agent-post-edit-checks.sh`
+- `bash scripts/persist-runtime-report.sh`
+- `bash scripts/sync-upgrade-artifacts.sh --target /path/to/repo`
+- `bash scripts/sync-and-pr-bmo-stack.sh --dry-run`
