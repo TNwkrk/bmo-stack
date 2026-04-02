@@ -5,40 +5,47 @@ Aggregates logs from skill executions across the BMO stack.
 """
 
 import json
-import glob
 from datetime import datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+WORKSPACE_ROOT = Path.home() / ".openclaw" / "workspace" / "bmo-stack"
 WORKFLOWS_DIR = ROOT / "workflows"
 SKILL_LOGS_FILE = WORKFLOWS_DIR / "skill_execution_logs.json"
 LOGS_DIR = ROOT / "logs"
+
+
+def runtime_roots() -> list[Path]:
+    roots: list[Path] = []
+    for candidate in (ROOT, WORKSPACE_ROOT):
+        if candidate.exists() and candidate not in roots:
+            roots.append(candidate)
+    return roots
 
 def collect_skill_logs():
     """Collect skill execution logs from various sources."""
     skill_executions = []
     now = datetime.now()
     cutoff_time = now - timedelta(hours=24)  # Last 24 hours
-    
-    # Define log patterns to check for skill executions
-    log_patterns = [
-        "*/skills/*/scripts/*.log",
-        "*/logs/skill-*.log",
-        "*/logs/*-skill*.log",
-        "*skill*.log"
-    ]
+    seen_logs: set[str] = set()
     
     # Check skills directories for logs
-    skills_dir = ROOT / "skills"
-    if skills_dir.exists():
-        for skill_dir in skills_dir.iterdir():
-            if skill_dir.is_dir():
+    for base in runtime_roots():
+        skills_dir = base / "skills"
+        if skills_dir.exists():
+            for skill_dir in skills_dir.iterdir():
+                if not skill_dir.is_dir():
+                    continue
                 # Check for script logs
                 script_logs = list(skill_dir.glob("scripts/*.log"))
                 for log_file in script_logs:
                     try:
+                        fingerprint = str(log_file.resolve())
+                        if fingerprint in seen_logs:
+                            continue
                         mtime = datetime.fromtimestamp(log_file.stat().st_mtime)
                         if mtime > cutoff_time:
+                            seen_logs.add(fingerprint)
                             skill_executions.append({
                                 "skill": skill_dir.name,
                                 "component": log_file.parent.name,  # usually "scripts"
@@ -54,8 +61,12 @@ def collect_skill_logs():
                 skill_logs = list(skill_dir.glob("*.log"))
                 for log_file in skill_logs:
                     try:
+                        fingerprint = str(log_file.resolve())
+                        if fingerprint in seen_logs:
+                            continue
                         mtime = datetime.fromtimestamp(log_file.stat().st_mtime)
                         if mtime > cutoff_time:
+                            seen_logs.add(fingerprint)
                             skill_executions.append({
                                 "skill": skill_dir.name,
                                 "component": "skill-root",
@@ -68,11 +79,14 @@ def collect_skill_logs():
                         pass
     
     # Check general logs directory for skill-related logs
-    if LOGS_DIR.exists():
-        for log_file in LOGS_DIR.rglob("*.log"):
+    for base in runtime_roots():
+        logs_dir = base / "logs"
+        if not logs_dir.exists():
+            continue
+        for log_file in logs_dir.rglob("*.log"):
             # Skip if we already counted it from skills dir
-            if "skills" in str(log_file) and any(skill in str(log_file) for skill in 
-                                              ["agent-automation", "mission-control-enhancement"]):
+            fingerprint = str(log_file.resolve())
+            if fingerprint in seen_logs:
                 continue
                 
             # Check if it looks like a skill log
@@ -81,6 +95,7 @@ def collect_skill_logs():
                 try:
                     mtime = datetime.fromtimestamp(log_file.stat().st_mtime)
                     if mtime > cutoff_time:
+                        seen_logs.add(fingerprint)
                         # Extract skill name from path or filename
                         skill_name = "unknown"
                         # Try to get skill name from path
