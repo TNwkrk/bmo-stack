@@ -6,7 +6,7 @@ configs:
   Release: release
 settings:
   IPHONEOS_DEPLOYMENT_TARGET: 17.0
-  SWIFT_VERSION: 5.0
+  SWIFT_VERSION: "5.9"
 targets:
   OpenClawShell:
     type: application
