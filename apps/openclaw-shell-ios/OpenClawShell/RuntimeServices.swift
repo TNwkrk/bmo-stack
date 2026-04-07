@@ -76,6 +76,7 @@ final class DownloadCenter {
 protocol LocalLLMEngine {
     var backendDisplayName: String { get }
     var isRuntimeReady: Bool { get }
+    var requiresModelSelection: Bool { get }
 
     func bootstrap() async throws
     func configureRuntime(_ config: EngineRuntimeConfig?) async throws
@@ -94,6 +95,14 @@ final class MLCBridgeEngine: LocalLLMEngine {
     }
 
     var isRuntimeReady: Bool { runtimeConfig != nil }
+
+    var requiresModelSelection: Bool {
+        #if canImport(MLCSwift)
+        true
+        #else
+        false
+        #endif
+    }
 
     func bootstrap() async throws {}
 
@@ -193,7 +202,14 @@ final class ModelCatalogStore: ObservableObject {
     func addRemoteModel(displayName: String, sourceURL: String, modelID: String, modelLib: String) {
         let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedURL = sourceURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty, !trimmedURL.isEmpty else { return }
+        guard !trimmedName.isEmpty, !trimmedURL.isEmpty else {
+            errorMessage = "Enter both a display name and a model URL."
+            return
+        }
+        guard let parsedURL = URL(string: trimmedURL), let scheme = parsedURL.scheme?.lowercased(), ["https", "http"].contains(scheme) else {
+            errorMessage = "Model source URLs must be valid http or https links."
+            return
+        }
 
         remoteModels.insert(
             RemoteModel(
@@ -443,6 +459,45 @@ final class AppState: ObservableObject {
     @Published var runtimePreferences = RuntimePreferencesStore()
     @Published var runtimeStatus = "Not configured"
 
+    var selectedInstalledModel: InstalledModel? {
+        guard let filename = runtimePreferences.selection.selectedInstalledFilename else { return nil }
+        return modelStore.installedModels.first(where: { $0.localFilename == filename })
+    }
+
+    var usesStubRuntime: Bool {
+        backendDisplayName == "Stub runtime"
+    }
+
+    var operatorSummary: String {
+        if usesStubRuntime {
+            return "Demo-safe shell: UI, storage, and editing are real, but model inference is still stubbed until MLCSwift is wired in."
+        }
+        if let model = selectedInstalledModel {
+            return "On-device runtime selected: \(model.modelID.isEmpty ? model.localFilename : model.modelID)."
+        }
+        if engine.requiresModelSelection {
+            return "On-device runtime is available, but no packaged model is selected yet."
+        }
+        return "Runtime ready."
+    }
+
+    var localFirstSummary: String {
+        var parts = ["Files, chat history, and model metadata stay inside the app container by default."]
+        if modelStore.remoteModels.isEmpty {
+            parts.append("No remote model sources are configured.")
+        } else {
+            parts.append("Remote model URLs are configured for convenience, but prepared local imports remain the safer path.")
+        }
+        return parts.joined(separator: " ")
+    }
+
+    var workspaceStatusSummary: String {
+        let fileCount = workspaceStore.files.count
+        let selectedCount = chatStore.selectedFileIDs.count
+        let messageCount = chatStore.messages.count
+        return "\(fileCount) workspace file\(fileCount == 1 ? "" : "s"), \(selectedCount) attached to chat, \(messageCount) chat message\(messageCount == 1 ? "" : "s")."
+    }
+
     private let engine: LocalLLMEngine
 
     init(engine: LocalLLMEngine) {
@@ -479,6 +534,12 @@ final class AppState: ObservableObject {
     func send(prompt: String) async {
         let cleaned = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else { return }
+
+        if engine.requiresModelSelection, selectedInstalledModel == nil {
+            chatStore.errorMessage = "Select an installed model in Models before sending chat prompts."
+            runtimeStatus = "Model required"
+            return
+        }
 
         chatStore.messages.append(ChatMessage(role: .user, content: cleaned))
         chatStore.persist()
