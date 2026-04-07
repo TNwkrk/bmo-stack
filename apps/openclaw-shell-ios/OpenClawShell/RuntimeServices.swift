@@ -24,6 +24,14 @@ enum Paths {
         return folder
     }
 
+    static var documentsDirectory: URL {
+        fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    }
+
+    static var legacyWorkspaceDirectory: URL {
+        documentsDirectory.appendingPathComponent(workspaceFolderName, isDirectory: true)
+    }
+
     static var workspaceDirectory: URL {
         let folder = applicationSupportDirectory.appendingPathComponent(workspaceFolderName, isDirectory: true)
         ensureDirectoryExists(folder)
@@ -350,11 +358,45 @@ final class WorkspaceStore: ObservableObject {
     @Published var errorMessage: String?
 
     func load() {
+        migrateLegacyWorkspaceIfNeeded()
+
         let urls = (try? FileManager.default.contentsOfDirectory(at: Paths.workspaceDirectory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
         files = urls.map { WorkspaceFile(filename: $0.lastPathComponent, localURL: $0) }
             .sorted { $0.filename.localizedCaseInsensitiveCompare($1.filename) == .orderedAscending }
         if let selected = selectedFile {
             selectedFile = files.first(where: { $0.localURL == selected.localURL })
+        }
+    }
+
+    private func migrateLegacyWorkspaceIfNeeded() {
+        let fileManager = FileManager.default
+        let legacyDirectory = Paths.legacyWorkspaceDirectory
+        let targetDirectory = Paths.workspaceDirectory
+
+        guard legacyDirectory != targetDirectory else { return }
+
+        var legacyIsDirectory: ObjCBool = false
+        guard fileManager.fileExists(atPath: legacyDirectory.path, isDirectory: &legacyIsDirectory), legacyIsDirectory.boolValue else {
+            return
+        }
+
+        let legacyURLs = (try? fileManager.contentsOfDirectory(at: legacyDirectory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
+        guard !legacyURLs.isEmpty else { return }
+
+        let targetURLs = (try? fileManager.contentsOfDirectory(at: targetDirectory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
+        guard targetURLs.isEmpty else { return }
+
+        for sourceURL in legacyURLs {
+            let destinationURL = targetDirectory.appendingPathComponent(sourceURL.lastPathComponent)
+            do {
+                if fileManager.fileExists(atPath: destinationURL.path) {
+                    continue
+                }
+                try fileManager.copyItem(at: sourceURL, to: destinationURL)
+            } catch {
+                errorMessage = "Failed to migrate existing workspace files into app storage: \(error.localizedDescription)"
+                return
+            }
         }
     }
 
@@ -495,7 +537,7 @@ final class AppState: ObservableObject {
         let fileCount = workspaceStore.files.count
         let selectedCount = chatStore.selectedFileIDs.count
         let messageCount = chatStore.messages.count
-        return "\(fileCount) workspace file\(fileCount == 1 ? "" : "s"), \(selectedCount) attached to chat, \(messageCount) chat message\(messageCount == 1 ? "" : "s")."
+        return "\(fileCount) workspace file\(fileCount == 1 ? \"\" : \"s\"), \(selectedCount) attached to chat, \(messageCount) chat message\(messageCount == 1 ? \"\" : \"s\")."
     }
 
     private let engine: LocalLLMEngine
